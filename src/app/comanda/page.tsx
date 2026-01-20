@@ -205,7 +205,15 @@ function ComandaPageContent() {
           items: [], // Enviar items vazio para satisfazer validação do backend
         });
         orderId = newOrder.id;
-        setCurrentOrder({ ...newOrder, items: [] });
+        setCurrentOrder({
+          id: newOrder.id,
+          orderType: "MESA",
+          table: Number(selectedTable),
+          status: false,
+          draft: true,
+          createdAt: new Date().toISOString(),
+          items: []
+        });
       } catch (error) {
         console.error("Erro ao criar pedido:", error);
         if (error instanceof Error) {
