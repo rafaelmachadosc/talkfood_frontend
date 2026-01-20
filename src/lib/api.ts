@@ -6,8 +6,8 @@
 import { apiClient as newApiClient, getApiAdapter } from "@/core/http/api-adapter";
 import { environmentConfig } from "@/core/config/environment-strategy";
 
-// Re-exportar para compatibilidade
-export { apiClient, getApiAdapter } from "@/core/http/api-adapter";
+// Re-exportar getApiAdapter para compatibilidade
+export { getApiAdapter } from "@/core/http/api-adapter";
 
 /**
  * @deprecated Use environmentConfig.getApiBaseUrl() diretamente
