@@ -1,0 +1,83 @@
+"use client";
+
+import { useActionState, useEffect } from "react";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { loginAction } from "@/actions/auth";
+import { useRouter } from "next/navigation";
+import { Logo } from "@/components/logo";
+
+export function LoginForm() {
+  const [state, formAction, isPending] = useActionState(loginAction, null);
+  const router = useRouter();
+
+  useEffect(() => {
+    if (state?.success && state?.redirectTo) {
+      router.replace(state.redirectTo);
+    }
+  }, [state, router]);
+
+  return (
+    <Card className="bg-app-card border border-app-border w-full max-w-md mx-auto">
+      <CardHeader>
+        <div className="flex justify-center">
+          <Logo width={140} height={46} className="h-12 sm:h-14 w-auto" />
+        </div>
+      </CardHeader>
+      <CardContent>
+        <form className="space-y-4" action={formAction}>
+          <div className="space-y-2">
+            <Label htmlFor="email" className="text-black">
+              Email
+            </Label>
+            <Input
+              type="email"
+              id="email"
+              name="email"
+              placeholder="Digite seu email..."
+              required
+              className="text-black bg-app-card border border-app-border"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="password" className="text-black">
+              Senha
+            </Label>
+            <Input
+              type="password"
+              id="password"
+              name="password"
+              placeholder="Digite sua senha..."
+              required
+              className="text-black bg-app-card border border-app-border"
+            />
+          </div>
+
+          <Button
+            type="submit"
+            className="w-full bg-brand-primary hover:bg-brand-primary/90 text-black tech-shadow tech-hover font-normal"
+          >
+            {isPending ? "Acessando conta..." : "Acessar"}
+          </Button>
+
+          {state?.error && (
+            <div className="text-sm text-red-500 bg-red-50 p-3 rounded-md">
+              {state.error}
+            </div>
+          )}
+
+          <p className="text-center text-sm text-gray-700">
+            Ainda não possui uma conta?{" "}
+            <Link href="/register" className="text-brand-primary font-normal">
+              Cria uma conta
+            </Link>
+          </p>
+        </form>
+      </CardContent>
+    </Card>
+  );
+}
