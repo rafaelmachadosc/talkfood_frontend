@@ -43,6 +43,7 @@ interface Order {
   table?: number;
   name?: string;
   phone?: string;
+  orderType?: "MESA" | "BALCAO";
   items: OrderItem[];
   createdAt: string;
   draft: boolean;
