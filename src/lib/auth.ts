@@ -52,7 +52,7 @@ export async function requiredAdmin(): Promise<User> {
     redirect("/login");
   }
 
-  if (user.role !== "ADMIN") {
+  if (user.role !== "ADMIN" && user.role !== "Admin") {
     redirect("/access-denied");
   }
 
