@@ -19,7 +19,7 @@ export async function createProductAction(data: {
       return { success: false, error: "Erro ao criar produto" };
     }
 
-    await api.post("/product", data, { token });
+    await api.post("/api/product", data, { token });
 
     revalidatePath("/dashboard/products");
 
@@ -47,7 +47,7 @@ export async function updateProductAction(data: {
       return { success: false, error: "Erro ao atualizar produto" };
     }
 
-    await api.put("/product", data, { token });
+    await api.put("/api/product", data, { token });
 
     revalidatePath("/dashboard/products");
 
@@ -73,7 +73,7 @@ export async function deleteProductAction(productId: string) {
       return { success: false, error: "Falha ao deletar produto" };
     }
 
-    await api.delete(`/product?product_id=${productId}`, { token });
+    await api.delete(`/api/product?product_id=${productId}`, { token });
 
     revalidatePath("/dashboard/products");
     return { success: true, error: "" };

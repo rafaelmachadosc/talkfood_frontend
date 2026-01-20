@@ -36,14 +36,14 @@ export function DashboardAnalytics({ token }: DashboardAnalyticsProps) {
     async function loadData() {
       try {
         // Buscar métricas de vendas (silent404 para não gerar erro no console se endpoint não existir)
-        const metricsData = await apiClient<SalesMetrics | null>("/analytics/metrics", {
+        const metricsData = await apiClient<SalesMetrics | null>("/api/analytics/metrics", {
           method: "GET",
           token: token,
           silent404: true,
         });
 
         // Buscar vendas diárias (últimos 7 dias)
-        const dailyData = await apiClient<DailySales[] | null>("/analytics/daily-sales", {
+        const dailyData = await apiClient<DailySales[] | null>("/api/analytics/daily-sales", {
           method: "GET",
           token: token,
           silent404: true,

@@ -38,7 +38,7 @@ export async function createPublicOrderAction(
     }
 
     // Criar o pedido COM os itens em uma única requisição
-    const order = await publicApi.post<{ id: string }>("/public/order", {
+    const order = await publicApi.post<{ id: string }>("/api/public/order", {
       orderType: data.orderType,
       table: data.table,
       name: data.name,

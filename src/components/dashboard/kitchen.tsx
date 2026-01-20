@@ -39,14 +39,14 @@ export function Kitchen({ token }: KitchenProps) {
       setLoading(true);
       // Buscar TODOS os pedidos para garantir sincronização
       // Primeiro busca rascunhos
-      const draftResponse = await apiClient<Order[]>("/orders?draft=true", {
+      const draftResponse = await apiClient<Order[]>("/api/orders?draft=true", {
         method: "GET",
         cache: "no-store",
         token: token,
       });
 
       // Depois busca não-rascunhos
-      const nonDraftResponse = await apiClient<Order[]>("/orders?draft=false", {
+      const nonDraftResponse = await apiClient<Order[]>("/api/orders?draft=false", {
         method: "GET",
         cache: "no-store",
         token: token,
@@ -191,12 +191,12 @@ export function Kitchen({ token }: KitchenProps) {
               setLoading(true);
               try {
                 // Buscar todos os pedidos em produção
-                const draftResponse = await apiClient<Order[]>("/orders?draft=true", {
+                const draftResponse = await apiClient<Order[]>("/api/orders?draft=true", {
                   method: "GET",
                   cache: "no-store",
                   token: token,
                 });
-                const nonDraftResponse = await apiClient<Order[]>("/orders?draft=false", {
+                const nonDraftResponse = await apiClient<Order[]>("/api/orders?draft=false", {
                   method: "GET",
                   cache: "no-store",
                   token: token,
@@ -213,7 +213,7 @@ export function Kitchen({ token }: KitchenProps) {
                 
                 for (const order of inProductionOrders) {
                   try {
-                    await apiClient(`/order?order_id=${order.id}`, {
+                    await apiClient(`/api/order?order_id=${order.id}`, {
                       method: "DELETE",
                       token: token,
                     });

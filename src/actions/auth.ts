@@ -20,7 +20,7 @@ export async function registerAction(
       password: password,
     };
 
-    await apiClient<User>("/users", {
+    await apiClient<User>("/api/auth/users", {
       method: "POST",
       body: JSON.stringify(data),
     });
@@ -48,7 +48,7 @@ export async function loginAction(
       password: password,
     };
 
-    const response = await apiClient<AuthResponse>("/session", {
+    const response = await apiClient<AuthResponse>("/api/auth/session", {
       method: "POST",
       body: JSON.stringify(data),
     });

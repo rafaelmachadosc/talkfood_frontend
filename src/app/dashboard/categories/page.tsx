@@ -7,7 +7,7 @@ import { CategoryForm } from "@/components/dashboard/category-form";
 
 export default async function Categories() {
   const token = await getToken();
-  const categories = await apiClient<Category[]>("/category", {
+  const categories = await apiClient<Category[]>("/api/category", {
     token: token!,
   });
 

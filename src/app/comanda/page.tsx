@@ -85,8 +85,8 @@ function ComandaPageContent() {
     async function loadData() {
       try {
         const [categoriesData, productsData] = await fetchPublicAll<[Category[], Product[]]>([
-          "/public/category",
-          "/public/products?disabled=false",
+          "/api/public/category",
+          "/api/public/products?disabled=false",
         ]);
 
         setCategories(categoriesData);
@@ -113,7 +113,7 @@ function ComandaPageContent() {
       try {
         // Tentar buscar pedido em rascunho da mesa
         const orders = await fetchPublic<Order[]>(
-          `/public/orders?table=${selectedTable}&draft=true`
+          `/api/public/orders?table=${selectedTable}&draft=true`
         );
         
         const draftOrder = Array.isArray(orders) 
@@ -124,7 +124,7 @@ function ComandaPageContent() {
           // Carregar detalhes completos do pedido
           try {
             const orderDetail = await fetchPublic<Order>(
-              `/public/order/detail?order_id=${draftOrder.id}`
+              `/api/public/order/detail?order_id=${draftOrder.id}`
             );
             setCurrentOrder(orderDetail);
           } catch {
@@ -133,7 +133,7 @@ function ComandaPageContent() {
         } else {
           // Criar novo pedido em rascunho
           try {
-            const newOrder = await postPublic<Order>("/public/order", {
+            const newOrder = await postPublic<Order>("/api/public/order", {
               orderType: "MESA",
               table: Number(selectedTable),
               items: [], // Enviar items vazio para satisfazer validação do backend
@@ -164,7 +164,7 @@ function ComandaPageContent() {
       setLoadingOrders(true);
       try {
         const orders = await fetchPublic<Order[]>(
-          `/public/orders?table=${selectedTable}`
+          `/api/public/orders?table=${selectedTable}`
         );
         // Filtrar apenas pedidos finalizados (status: true)
         const finishedOrders = Array.isArray(orders) 
@@ -200,7 +200,7 @@ function ComandaPageContent() {
     // Se não tiver pedido, criar um primeiro
     if (!currentOrder || !orderId) {
       try {
-        const newOrder = await postPublic<{ id: string }>("/public/order", {
+        const newOrder = await postPublic<{ id: string }>("/api/public/order", {
           orderType: "MESA",
           table: Number(selectedTable),
           items: [], // Enviar items vazio para satisfazer validação do backend
@@ -240,7 +240,7 @@ function ComandaPageContent() {
     }
 
     try {
-      await postPublic("/public/order/add", {
+      await postPublic("/api/public/order/add", {
         order_id: orderId,
         product_id: product.id,
         amount: 1,
@@ -249,7 +249,7 @@ function ComandaPageContent() {
       // Recarregar o pedido completo para ter os dados atualizados do servidor
       try {
         const updatedOrder = await fetchPublic<Order>(
-          `/public/order/detail?order_id=${orderId}`
+          `/api/public/order/detail?order_id=${orderId}`
         );
         setCurrentOrder(updatedOrder);
       } catch {
@@ -309,7 +309,7 @@ function ComandaPageContent() {
 
     try {
       const publicClient = HttpClientFactory.getPublicClient();
-      await publicClient.delete(`/public/order/remove?item_id=${itemId}`);
+      await publicClient.delete(`/api/public/order/remove?item_id=${itemId}`);
       
       setCurrentOrder((prev) => {
         if (!prev) return null;
@@ -361,7 +361,7 @@ function ComandaPageContent() {
       // Nota: Pode ser que o backend não tenha endpoint para atualizar, então usaremos o send que pode aceitar name
       
       const publicClient = HttpClientFactory.getPublicClient();
-      await publicClient.put("/public/order/send", {
+      await publicClient.put("/api/public/order/send", {
         order_id: currentOrder.id,
         name: trimmedName, // Incluir nome no send se o backend suportar
       });

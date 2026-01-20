@@ -1,0 +1,9 @@
+[00:00:03.375] Server  LOG      ✓ Ready in 2.3s
+[00:01:00.159] Server  LOG      ○ Compiling / ...
+[00:01:07.051] Server  LOG      ○ Compiling /login ...
+[00:01:13.614] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:01:15.389] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:01:17.467] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:02:07.785] Server  LOG     [HTTP] POST http://localhost:8081/session
+[00:02:08.365] Server  ERROR   Erro no login: Error: Não foi possível conectar ao servidor em http://localhost:8081. Verifique se o backend está rodando e acessível.
+[01:58:46.693] Server  LOG      ✓ Compiled in 261ms

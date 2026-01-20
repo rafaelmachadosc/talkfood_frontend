@@ -79,7 +79,7 @@ export function CaixaPage({ token }: CaixaPageProps) {
     try {
       setLoading(true);
       // silent404 para não gerar erro no console se endpoint não existir
-      const status = await apiClient<CaixaStatus | null>("/caixa/status", {
+      const status = await apiClient<CaixaStatus | null>("/api/caixa/status", {
         method: "GET",
         token: token,
         silent404: true,
@@ -122,7 +122,7 @@ export function CaixaPage({ token }: CaixaPageProps) {
         return;
       }
       
-      await apiClient("/caixa/open", {
+      await apiClient("/api/caixa/open", {
         method: "POST",
         token: token,
         body: JSON.stringify({ initialAmount: Math.round(amount * 100) }), // Converter para centavos
@@ -153,7 +153,7 @@ export function CaixaPage({ token }: CaixaPageProps) {
 
   const handleCloseCaixa = async () => {
     try {
-      await apiClient("/caixa/close", {
+      await apiClient("/api/caixa/close", {
         method: "POST",
         token: token,
         silent404: true, // Silenciar erro 404 (endpoint pode não existir)

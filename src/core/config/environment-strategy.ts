@@ -156,14 +156,25 @@ export class EnvironmentStrategyFactory {
                    process.env.NODE_ENV || 
                    "local";
 
-    // Verificar se há URL do Cloudflare Tunnel ou se o domínio padrão está configurado
+    // Prioridade 1: Se NEXT_PUBLIC_API_URL está configurado, usar ProductionStrategy
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+    if (apiUrl && apiUrl.startsWith("https://")) {
+      return new ProductionEnvironmentStrategy(apiUrl);
+    }
+
+    // Prioridade 2: Verificar se há URL do Cloudflare Tunnel
     const tunnelUrl = process.env.NEXT_PUBLIC_CLOUDFLARE_TUNNEL_URL;
     const useTunnel = tunnelUrl || 
                      envType.toLowerCase() === EnvironmentType.CLOUDFLARE_TUNNEL ||
-                     envType.toLowerCase() === "production"; // Produção geralmente usa tunnel
+                     (envType.toLowerCase() === "production" && !apiUrl); // Produção geralmente usa tunnel
 
     if (useTunnel) {
       return new CloudflareTunnelStrategy(tunnelUrl);
+    }
+
+    // Prioridade 3: Se NEXT_PUBLIC_API_URL está configurado (mesmo que não seja https)
+    if (apiUrl) {
+      return new ProductionEnvironmentStrategy(apiUrl);
     }
 
     // Verificar tipo de ambiente explícito

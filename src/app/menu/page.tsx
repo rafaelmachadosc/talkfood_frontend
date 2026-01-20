@@ -48,8 +48,8 @@ export default function MenuPage() {
     async function loadData() {
       try {
         const [categoriesData, productsData] = await fetchPublicAll<[Category[], Product[]]>([
-          "/public/category",
-          "/public/products?disabled=false",
+          "/api/public/category",
+          "/api/public/products?disabled=false",
         ]);
 
         setCategories(categoriesData);

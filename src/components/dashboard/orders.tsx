@@ -42,7 +42,7 @@ export function Orders({ token }: OrdersProps) {
       setLoading(true);
       // Buscar todos os pedidos (incluindo rascunhos) para mostrar mesas abertas
       // Mesas criadas manualmente podem começar como rascunho
-      const response = await apiClient<Order[]>("/orders?draft=true", {
+      const response = await apiClient<Order[]>("/api/orders?draft=true", {
         method: "GET",
         cache: "no-store",
         token: token,
@@ -56,7 +56,7 @@ export function Orders({ token }: OrdersProps) {
       }
 
       // Buscar também pedidos não-rascunhos para garantir sincronização completa
-      const nonDraftResponse = await apiClient<Order[]>("/orders?draft=false", {
+      const nonDraftResponse = await apiClient<Order[]>("/api/orders?draft=false", {
         method: "GET",
         cache: "no-store",
         token: token,
@@ -222,12 +222,12 @@ export function Orders({ token }: OrdersProps) {
               setLoading(true);
               try {
                 // Buscar todos os pedidos
-                const draftResponse = await apiClient<Order[]>("/orders?draft=true", {
+                const draftResponse = await apiClient<Order[]>("/api/orders?draft=true", {
                   method: "GET",
                   cache: "no-store",
                   token: token,
                 });
-                const nonDraftResponse = await apiClient<Order[]>("/orders?draft=false", {
+                const nonDraftResponse = await apiClient<Order[]>("/api/orders?draft=false", {
                   method: "GET",
                   cache: "no-store",
                   token: token,
@@ -244,7 +244,7 @@ export function Orders({ token }: OrdersProps) {
                 
                 for (const order of pendingOrders) {
                   try {
-                    await apiClient(`/order?order_id=${order.id}`, {
+                    await apiClient(`/api/order?order_id=${order.id}`, {
                       method: "DELETE",
                       token: token,
                     });

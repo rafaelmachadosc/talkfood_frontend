@@ -34,7 +34,7 @@ export async function getUser(): Promise<User | null> {
       return null;
     }
 
-    const user = await apiClient<User>("/me", {
+    const user = await apiClient<User>("/api/auth/me", {
       token: token,
     });
 

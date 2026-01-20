@@ -17,12 +17,12 @@ export default async function Products() {
   const token = await getToken();
 
   // Buscar categorias para o formulário
-  const categories = await apiClient<Category[]>("/category", {
+  const categories = await apiClient<Category[]>("/api/category", {
     token: token!,
   });
 
   // Buscar produtos
-  const products = await apiClient<Product[]>("/products", {
+  const products = await apiClient<Product[]>("/api/products", {
     token: token!,
   });
 

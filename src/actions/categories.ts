@@ -18,7 +18,7 @@ export async function createCategoryAction(formData: FormData) {
       name: name,
     };
 
-    await apiClient<Category>("/category", {
+    await apiClient<Category>("/api/category", {
       method: "POST",
       body: JSON.stringify(data),
       token: token,

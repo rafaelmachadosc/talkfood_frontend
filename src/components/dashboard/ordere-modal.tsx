@@ -60,7 +60,7 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
       }
 
       const response = await apiClient<Order>(
-        `/order/detail?order_id=${orderId}`,
+        `/api/order/detail?order_id=${orderId}`,
         {
           method: "GET",
           token: token,
@@ -126,11 +126,11 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
       
       try {
         const [categoriesData, productsData] = await Promise.all([
-          apiClient<Category[]>("/category", {
+          apiClient<Category[]>("/api/category", {
             method: "GET",
             token: token,
           }),
-          apiClient<Product[]>("/products", {
+          apiClient<Product[]>("/api/products", {
             method: "GET",
             token: token,
           }),
@@ -187,7 +187,7 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
         ? `Mesa ${order.table || ""}${order.name ? ` - ${order.name}` : ""}`
         : order.name || "Pedido no Balcão";
 
-      const response = await apiClient<Order>(`/order/send`, {
+      const response = await apiClient<Order>(`/api/order/send`, {
         method: "PUT",
         token: token,
         body: JSON.stringify({
@@ -278,7 +278,7 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
     try {
       // Deletar o pedido (sem criar novo, para que a mesa volte ao estado desocupado)
       try {
-        await apiClient(`/order?order_id=${orderId}`, {
+        await apiClient(`/api/order?order_id=${orderId}`, {
           method: "DELETE",
           token: token,
         });
@@ -305,7 +305,7 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
     if (!orderId || !selectedProduct) return;
 
     try {
-      await apiClient("/order/add", {
+      await apiClient("/api/order/add", {
         method: "POST",
         token: token,
         body: JSON.stringify({

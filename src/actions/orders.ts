@@ -19,7 +19,7 @@ export async function createOrderAction(data: {
       return { success: false, error: "Erro ao criar pedido" };
     }
 
-    await api.post("/order", data, { token });
+    await api.post("/api/order", data, { token });
 
     revalidatePath("/dashboard");
 
@@ -41,7 +41,7 @@ export async function markOrderAsViewedAction(orderId: string) {
       return { success: false, error: "Erro ao marcar pedido como visualizado" };
     }
 
-    await api.put("/order/viewed", { order_id: orderId }, { token });
+    await api.put("/api/order/viewed", { order_id: orderId }, { token });
 
     revalidatePath("/dashboard");
 
@@ -71,7 +71,7 @@ export async function finishOrderAction(orderId: string) {
       order_id: orderId,
     };
 
-    await api.put("/order/finish", data, { token });
+    await api.put("/api/order/finish", data, { token });
 
     revalidatePath("/dashboard");
     revalidatePath("/dashboard/caixa");
@@ -118,7 +118,7 @@ export async function receiveOrderAction(
     const order = await api.get<{ 
       status?: boolean;
       items?: Array<{ product: { price: number }; amount: number }> 
-    }>(`/order/detail?order_id=${orderId}`, { token });
+    }>(`/api/order/detail?order_id=${orderId}`, { token });
 
     // Verificar se o pedido já está finalizado
     if (!order) {
@@ -135,7 +135,7 @@ export async function receiveOrderAction(
     // Registrar o recebimento no caixa (endpoint que precisa ser implementado no backend)
     // Por enquanto, vamos apenas finalizar o pedido e atualizar o caixa
     try {
-      await api.post("/caixa/receive", {
+      await api.post("/api/caixa/receive", {
         order_id: orderId,
         amount: total,
         payment_method: paymentMethod || "DINHEIRO",
@@ -151,7 +151,7 @@ export async function receiveOrderAction(
 
     // Finalizar o pedido
     try {
-      await api.put("/order/finish", { order_id: orderId }, { token });
+      await api.put("/api/order/finish", { order_id: orderId }, { token });
     } catch (finishErr) {
       console.error("Erro ao finalizar pedido:", finishErr);
       let errorMessage = "Erro ao finalizar o pedido";
