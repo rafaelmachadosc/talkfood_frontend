@@ -17,14 +17,26 @@ export default async function Products() {
   const token = await getToken();
 
   // Buscar categorias para o formulário
-  const categories = await apiClient<Category[]>("/api/category", {
-    token: token!,
-  });
+  let categories: Category[] = [];
+  try {
+    categories = await apiClient<Category[]>("/api/category", {
+      token: token!,
+    }) || [];
+  } catch (error) {
+    console.error("Erro ao buscar categorias:", error);
+    categories = [];
+  }
 
   // Buscar produtos
-  const products = await apiClient<Product[]>("/api/products", {
-    token: token!,
-  });
+  let products: Product[] = [];
+  try {
+    products = await apiClient<Product[]>("/api/products", {
+      token: token!,
+    }) || [];
+  } catch (error) {
+    console.error("Erro ao buscar produtos:", error);
+    products = [];
+  }
 
   // Função para formatar o preço
   const formatPrice = (price: number) => {

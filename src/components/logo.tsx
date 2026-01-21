@@ -17,6 +17,10 @@ export function Logo({ className = "", width = 120, height = 40 }: LogoProps) {
       priority
       style={{ objectFit: "contain" }}
       unoptimized
+      onError={(e) => {
+        // Fallback se logo não carregar
+        console.warn("Logo não encontrada em /logo.png");
+      }}
     />
   );
 }

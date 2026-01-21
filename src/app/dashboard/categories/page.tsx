@@ -7,9 +7,15 @@ import { CategoryForm } from "@/components/dashboard/category-form";
 
 export default async function Categories() {
   const token = await getToken();
-  const categories = await apiClient<Category[]>("/api/category", {
-    token: token!,
-  });
+  let categories: Category[] = [];
+  try {
+    categories = await apiClient<Category[]>("/api/category", {
+      token: token!,
+    }) || [];
+  } catch (error) {
+    console.error("Erro ao buscar categorias:", error);
+    categories = [];
+  }
 
   return (
     <div className="space-y-4 sm:space-y-6">

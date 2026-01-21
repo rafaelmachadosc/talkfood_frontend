@@ -19,7 +19,11 @@ export async function createOrderAction(data: {
       return { success: false, error: "Erro ao criar pedido" };
     }
 
-    await api.post("/api/order", data, { token });
+    // Backend espera items mesmo que vazio
+    await api.post("/api/order", {
+      ...data,
+      items: [], // Array vazio para satisfazer validação do backend
+    }, { token });
 
     revalidatePath("/dashboard");
 
