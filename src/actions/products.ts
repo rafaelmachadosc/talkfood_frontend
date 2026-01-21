@@ -19,14 +19,35 @@ export async function createProductAction(data: {
       return { success: false, error: "Erro ao criar produto" };
     }
 
+    // Validar se category_id foi fornecido
+    if (!data.category_id || data.category_id.trim() === "") {
+      return { success: false, error: "Categoria é obrigatória" };
+    }
+
+    // Log do payload em desenvolvimento para debug
+    if (process.env.NODE_ENV === "development") {
+      console.log("[createProductAction] Payload:", JSON.stringify(data, null, 2));
+    }
+
     await api.post("/api/product", data, { token });
 
     revalidatePath("/dashboard/products");
 
     return { success: true, error: "" };
   } catch (error) {
+    console.error("[createProductAction] Erro ao criar produto:", error);
+    
     if (error instanceof Error) {
-      return { success: false, error: error.message };
+      let errorMessage = error.message;
+      
+      // Melhorar mensagens de erro específicas
+      if (errorMessage.includes("Categoria não encontrada") || errorMessage.includes("category")) {
+        errorMessage = "Categoria não encontrada. Verifique se a categoria existe e tente novamente.";
+      } else if (errorMessage.includes("400") || errorMessage.includes("Bad Request")) {
+        errorMessage = `Erro ao criar produto: ${errorMessage}. Verifique se todos os campos foram preenchidos corretamente.`;
+      }
+      
+      return { success: false, error: errorMessage };
     }
 
     return { success: false, error: "Erro ao criar produto" };

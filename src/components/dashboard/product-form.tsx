@@ -59,6 +59,13 @@ export function ProductForm({ categories }: ProductFormProps) {
     )?.value;
     const priceInCents = convertBRLToCents(priceValue);
 
+    // Validar se categoria foi selecionada
+    if (!selectedCategory || selectedCategory.trim() === "") {
+      setIsLoading(false);
+      alert("Por favor, selecione uma categoria.");
+      return;
+    }
+
     const result = await createProductAction({
       name,
       description,
@@ -71,11 +78,17 @@ export function ProductForm({ categories }: ProductFormProps) {
     if (result.success) {
       setOpen(false);
       setSelectedCategory("");
+      setPriceValue("");
       router.refresh();
       return;
     } else {
-      console.log(result.error);
-      alert(result.error);
+      console.error("Erro ao criar produto:", result.error);
+      // Melhorar mensagem de erro
+      let errorMsg = result.error || "Erro ao criar produto";
+      if (errorMsg.includes("Categoria não encontrada") || errorMsg.includes("category")) {
+        errorMsg = "Categoria não encontrada. Por favor, verifique se a categoria existe e tente novamente.";
+      }
+      alert(errorMsg);
     }
   }
 

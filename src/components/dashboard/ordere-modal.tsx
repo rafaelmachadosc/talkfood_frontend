@@ -80,20 +80,22 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
       if (showLoading) {
         setLoading(false);
       }
-      console.log(err);
+      console.error("Erro ao buscar pedido:", err);
+      // Não limpar o order para manter o modal aberto mesmo com erro
     }
   };
 
   useEffect(() => {
     async function loadOrders() {
-      await fetchOrder();
+      if (orderId) {
+        await fetchOrder();
+      } else {
+        setOrder(null);
+        setLoading(false);
+      }
     }
 
-    if (orderId) {
-      loadOrders();
-    } else {
-      setOrder(null);
-    }
+    loadOrders();
   }, [orderId, token]);
 
   // Atualizar automaticamente quando o modal estiver aberto

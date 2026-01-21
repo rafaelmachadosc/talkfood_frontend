@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { apiClient } from "@/lib/api";
+import { getApiAdapter } from "@/core/http/api-adapter";
 import { formatPrice } from "@/lib/format";
 import {
   Wallet,
@@ -156,31 +157,34 @@ export function CaixaPage({ token }: CaixaPageProps) {
         return;
       }
       
-      await apiClient("/api/caixa/open", {
-        method: "POST",
-        token: token,
-        body: JSON.stringify({ initialAmount: amountInCents }), // Já está em centavos
-        silent404: true, // Silenciar erro 404 (endpoint pode não existir)
-      });
+      // Usar o adapter que já faz a serialização corretamente
+      const api = getApiAdapter();
+      await api.post("/api/caixa/open", { initialAmount: amountInCents }, { token });
       
+      // Se chegou aqui, a requisição foi bem-sucedida
       await loadCaixaStatus();
       setShowOpenDialog(false);
       setInitialAmountRaw("");
+      
+      // Mostrar mensagem de sucesso
+      alert("Caixa aberto com sucesso!");
     } catch (error) {
-      // Tratar todos os erros do caixa como endpoint não implementado ou erro do backend
+      // Tratar erros de forma mais específica
       const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
+      
+      console.error("Erro ao abrir caixa:", error);
       
       // Verificar se é um erro relacionado ao backend não ter o endpoint implementado
       if (
         errorMessage.includes("404") || 
-        errorMessage.includes("findFirst") || 
-        errorMessage.includes("Cannot read properties") ||
-        errorMessage.includes("não está implementado")
+        errorMessage.includes("Not Found")
       ) {
-        alert("Funcionalidade não disponível: O endpoint de abertura de caixa não está implementado no backend. Por favor, implemente o endpoint POST /caixa/open no servidor.");
+        alert("Erro: O endpoint de abertura de caixa não está implementado no backend. Por favor, implemente o endpoint POST /api/caixa/open no servidor.");
+      } else if (errorMessage.includes("400") || errorMessage.includes("Bad Request")) {
+        alert(`Erro ao abrir caixa: ${errorMessage}. Verifique se o valor foi informado corretamente.`);
       } else {
-        // Para outros erros, mostrar mensagem genérica
-        alert("Erro ao abrir caixa. Verifique se o backend está configurado corretamente.");
+        // Para outros erros, mostrar mensagem com detalhes
+        alert(`Erro ao abrir caixa: ${errorMessage}`);
       }
     }
   };
