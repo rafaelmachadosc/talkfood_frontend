@@ -1,4 +1,5 @@
 import { apiClient } from "@/lib/api";
+import { getApiAdapter } from "@/core/http/api-adapter";
 import { Order, Product, Category } from "@/lib/types";
 import { useEffect, useState } from "react";
 import { orderEventHelpers } from "@/lib/order-events";
@@ -71,17 +72,23 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
       // RETORNO DETALHE DA ORDER
       if (response) {
         setOrder(response);
+        if (showLoading) {
+          setLoading(false);
+        }
+        return response;
       }
 
       if (showLoading) {
         setLoading(false);
       }
+      return null;
     } catch (err) {
       if (showLoading) {
         setLoading(false);
       }
       console.error("Erro ao buscar pedido:", err);
       // Não limpar o order para manter o modal aberto mesmo com erro
+      return null;
     }
   };
 
@@ -315,17 +322,24 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
     if (!orderId || !selectedProduct) return;
 
     try {
-      await apiClient("/api/order/add", {
-        method: "POST",
-        token: token,
-        body: JSON.stringify({
-          order_id: orderId,
-          product_id: selectedProduct,
-          amount: quantity,
-        }),
-      });
+      // Usar o adapter que já faz a serialização corretamente
+      const api = getApiAdapter();
+      await api.post("/api/order/add", {
+        order_id: orderId,
+        product_id: selectedProduct,
+        amount: quantity,
+      }, { token });
 
-      await fetchOrder(); // Recarregar o pedido
+      // Recarregar o pedido para obter os dados atualizados
+      const updatedOrder = await fetchOrder();
+      
+      // Após adicionar item, selecionar automaticamente todos os itens do pedido
+      // Isso permite que o usuário possa enviar para produção ou receber
+      if (updatedOrder && updatedOrder.draft && updatedOrder.items && updatedOrder.items.length > 0) {
+        const allItemIds = new Set(updatedOrder.items.map((item) => item.id));
+        setSelectedItems(allItemIds);
+      }
+      
       setShowAddItem(false);
       setSelectedProduct(null);
       setQuantity(1);
@@ -335,7 +349,8 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
       router.refresh();
     } catch (error) {
       console.error("Erro ao adicionar item:", error);
-      alert(error instanceof Error ? error.message : "Erro ao adicionar item");
+      const errorMessage = error instanceof Error ? error.message : "Erro ao adicionar item";
+      alert(errorMessage);
     }
   };
 
@@ -604,14 +619,14 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
                 </Button>
                 <Button
                   className="flex-1 bg-orange-500 hover:bg-orange-600 text-white tech-shadow tech-hover font-normal"
-                  disabled={loading || selectedItems.size === 0}
+                  disabled={loading || !order.items || order.items.length === 0 || selectedItems.size === 0}
                   onClick={handleSendOrder}
                 >
                   Produzir
                 </Button>
                 <Button
                   className="flex-1 bg-green-500 hover:bg-green-600 text-white tech-shadow tech-hover font-normal"
-                  disabled={loading || receiving || selectedItems.size === 0}
+                  disabled={loading || receiving || !order.items || order.items.length === 0 || selectedItems.size === 0}
                   onClick={() => setShowReceive(true)}
                 >
                   Receber
