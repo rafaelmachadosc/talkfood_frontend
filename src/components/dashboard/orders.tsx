@@ -42,28 +42,25 @@ export function Orders({ token }: OrdersProps) {
       setLoading(true);
       // Buscar todos os pedidos (incluindo rascunhos) para mostrar mesas abertas
       // Mesas criadas manualmente podem começar como rascunho
+      // Usar silent404 para não quebrar se endpoints não existirem ainda
       const response = await apiClient<Order[]>("/api/orders?draft=true", {
         method: "GET",
         cache: "no-store",
         token: token,
+        silent404: true, // Silenciar 404 se endpoint não existir
       });
-
-      if (!response || !Array.isArray(response)) {
-        console.error("Resposta inválida:", response);
-        setOrders([]);
-        setLoading(false);
-        return;
-      }
 
       // Buscar também pedidos não-rascunhos para garantir sincronização completa
       const nonDraftResponse = await apiClient<Order[]>("/api/orders?draft=false", {
         method: "GET",
         cache: "no-store",
         token: token,
+        silent404: true, // Silenciar 404 se endpoint não existir
       });
 
-      const draftOrders = response || [];
-      const nonDraftOrders = nonDraftResponse || [];
+      // Se ambos retornaram null (404), tratar como array vazio ao invés de erro
+      const draftOrders = (response && Array.isArray(response)) ? response : [];
+      const nonDraftOrders = (nonDraftResponse && Array.isArray(nonDraftResponse)) ? nonDraftResponse : [];
       
       // Combinar todas as respostas e remover duplicatas
       const allOrders = [...draftOrders, ...nonDraftOrders];
@@ -226,11 +223,13 @@ export function Orders({ token }: OrdersProps) {
                   method: "GET",
                   cache: "no-store",
                   token: token,
+                  silent404: true, // Silenciar 404 se endpoint não existir
                 });
                 const nonDraftResponse = await apiClient<Order[]>("/api/orders?draft=false", {
                   method: "GET",
                   cache: "no-store",
                   token: token,
+                  silent404: true, // Silenciar 404 se endpoint não existir
                 });
                 
                 const allOrders = [...(draftResponse || []), ...(nonDraftResponse || [])];

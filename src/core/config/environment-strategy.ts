@@ -68,9 +68,14 @@ export class CloudflareTunnelStrategy implements IEnvironmentStrategy {
 
   constructor(tunnelUrl?: string) {
     // Prioridade: parâmetro > variável de ambiente > domínio padrão
-    const tunnelHost = tunnelUrl || 
-                      process.env.NEXT_PUBLIC_CLOUDFLARE_TUNNEL_URL || 
-                      "https://talkfoodsoftwerk.net";
+    let tunnelHost = tunnelUrl?.trim() || 
+                     process.env.NEXT_PUBLIC_CLOUDFLARE_TUNNEL_URL?.trim() || 
+                     "https://talkfoodsoftwerk.net";
+    
+    // Garantir que sempre temos uma URL válida (fallback de segurança)
+    if (!tunnelHost || tunnelHost === "") {
+      tunnelHost = "https://talkfoodsoftwerk.net";
+    }
     
     this.config = {
       type: EnvironmentType.CLOUDFLARE_TUNNEL,
@@ -112,16 +117,19 @@ export class ProductionEnvironmentStrategy implements IEnvironmentStrategy {
   private readonly config: EnvironmentConfig;
 
   constructor(productionUrl?: string) {
-    const prodUrl = productionUrl || process.env.NEXT_PUBLIC_API_URL || "";
+    const prodUrl = productionUrl || process.env.NEXT_PUBLIC_API_URL || "https://talkfoodsoftwerk.net";
+    
+    // Garantir que sempre temos uma URL válida
+    const validUrl = prodUrl || "https://talkfoodsoftwerk.net";
     
     this.config = {
       type: EnvironmentType.PRODUCTION,
       frontendPort: 443,
       backendPort: 443,
       protocol: "https",
-      hostname: this.extractHostname(prodUrl),
+      hostname: this.extractHostname(validUrl),
       apiPath: "",
-      baseUrl: prodUrl,
+      baseUrl: validUrl,
     };
   }
 
@@ -156,33 +164,39 @@ export class EnvironmentStrategyFactory {
                    process.env.NODE_ENV || 
                    "local";
 
+    const isProduction = envType.toLowerCase() === "production" || 
+                        process.env.NODE_ENV === "production";
+
     // Prioridade 1: Se NEXT_PUBLIC_API_URL está configurado, usar ProductionStrategy
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-    if (apiUrl && apiUrl.startsWith("https://")) {
-      return new ProductionEnvironmentStrategy(apiUrl);
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL?.trim();
+    if (apiUrl && apiUrl !== "") {
+      // Se começa com https, usar ProductionStrategy
+      if (apiUrl.startsWith("https://")) {
+        return new ProductionEnvironmentStrategy(apiUrl);
+      }
+      // Se começa com http, também usar ProductionStrategy (pode ser desenvolvimento)
+      if (apiUrl.startsWith("http://")) {
+        return new ProductionEnvironmentStrategy(apiUrl);
+      }
     }
 
     // Prioridade 2: Verificar se há URL do Cloudflare Tunnel
-    const tunnelUrl = process.env.NEXT_PUBLIC_CLOUDFLARE_TUNNEL_URL;
-    const useTunnel = tunnelUrl || 
-                     envType.toLowerCase() === EnvironmentType.CLOUDFLARE_TUNNEL ||
-                     (envType.toLowerCase() === "production" && !apiUrl); // Produção geralmente usa tunnel
-
-    if (useTunnel) {
+    const tunnelUrl = process.env.NEXT_PUBLIC_CLOUDFLARE_TUNNEL_URL?.trim();
+    if (tunnelUrl && tunnelUrl !== "") {
       return new CloudflareTunnelStrategy(tunnelUrl);
     }
 
-    // Prioridade 3: Se NEXT_PUBLIC_API_URL está configurado (mesmo que não seja https)
-    if (apiUrl) {
-      return new ProductionEnvironmentStrategy(apiUrl);
+    // Prioridade 3: Se estiver em produção, usar Cloudflare Tunnel Strategy com URL padrão
+    if (isProduction) {
+      return new CloudflareTunnelStrategy(); // Usa https://talkfoodsoftwerk.net como padrão
     }
 
-    // Verificar tipo de ambiente explícito
+    // Prioridade 4: Verificar tipo de ambiente explícito
     switch (envType.toLowerCase()) {
       case EnvironmentType.CLOUDFLARE_TUNNEL:
         return new CloudflareTunnelStrategy();
       case EnvironmentType.PRODUCTION:
-        return new ProductionEnvironmentStrategy();
+        return new CloudflareTunnelStrategy(); // Usa https://talkfoodsoftwerk.net
       case EnvironmentType.LOCAL:
       case EnvironmentType.DEVELOPMENT:
       default:
@@ -212,7 +226,13 @@ class EnvironmentConfigManager {
   private strategy: IEnvironmentStrategy;
 
   private constructor() {
-    this.strategy = EnvironmentStrategyFactory.create();
+    try {
+      this.strategy = EnvironmentStrategyFactory.create();
+    } catch (error) {
+      // Fallback para CloudflareTunnelStrategy em caso de erro
+      console.error("Erro ao criar estratégia de ambiente, usando fallback:", error);
+      this.strategy = new CloudflareTunnelStrategy();
+    }
   }
 
   static getInstance(): EnvironmentConfigManager {
@@ -231,12 +251,30 @@ class EnvironmentConfigManager {
   }
 
   getConfig(): EnvironmentConfig {
-    return this.strategy.getConfig();
+    try {
+      return this.strategy.getConfig();
+    } catch (error) {
+      // Fallback seguro
+      console.error("Erro ao obter configuração, usando fallback:", error);
+      return new CloudflareTunnelStrategy().getConfig();
+    }
   }
 
   getApiBaseUrl(): string {
-    return this.strategy.getApiBaseUrl();
+    try {
+      const url = this.strategy.getApiBaseUrl();
+      // Garantir que sempre retorna uma URL válida
+      if (!url || url.trim() === "") {
+        return "https://talkfoodsoftwerk.net";
+      }
+      return url;
+    } catch (error) {
+      // Fallback seguro
+      console.error("Erro ao obter URL da API, usando fallback:", error);
+      return "https://talkfoodsoftwerk.net";
+    }
   }
 }
 
+// Inicialização segura do singleton
 export const environmentConfig = EnvironmentConfigManager.getInstance();

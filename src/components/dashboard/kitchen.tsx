@@ -39,10 +39,12 @@ export function Kitchen({ token }: KitchenProps) {
       setLoading(true);
       // Buscar TODOS os pedidos para garantir sincronização
       // Primeiro busca rascunhos
+      // Usar silent404 para não quebrar se endpoints não existirem ainda
       const draftResponse = await apiClient<Order[]>("/api/orders?draft=true", {
         method: "GET",
         cache: "no-store",
         token: token,
+        silent404: true, // Silenciar 404 se endpoint não existir
       });
 
       // Depois busca não-rascunhos
@@ -50,10 +52,12 @@ export function Kitchen({ token }: KitchenProps) {
         method: "GET",
         cache: "no-store",
         token: token,
+        silent404: true, // Silenciar 404 se endpoint não existir
       });
 
-      const draftOrders = draftResponse || [];
-      const nonDraftOrders = nonDraftResponse || [];
+      // Se ambos retornaram null (404), tratar como array vazio
+      const draftOrders = (draftResponse && Array.isArray(draftResponse)) ? draftResponse : [];
+      const nonDraftOrders = (nonDraftResponse && Array.isArray(nonDraftResponse)) ? nonDraftResponse : [];
       
       // Combinar todas as respostas e remover duplicatas
       const allOrders = [...draftOrders, ...nonDraftOrders];
@@ -195,11 +199,13 @@ export function Kitchen({ token }: KitchenProps) {
                   method: "GET",
                   cache: "no-store",
                   token: token,
+                  silent404: true, // Silenciar 404 se endpoint não existir
                 });
                 const nonDraftResponse = await apiClient<Order[]>("/api/orders?draft=false", {
                   method: "GET",
                   cache: "no-store",
                   token: token,
+                  silent404: true, // Silenciar 404 se endpoint não existir
                 });
                 
                 const allOrders = [...(draftResponse || []), ...(nonDraftResponse || [])];
