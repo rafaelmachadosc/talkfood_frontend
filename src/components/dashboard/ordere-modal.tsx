@@ -1,6 +1,7 @@
 import { apiClient } from "@/lib/api";
 import { Order, Product, Category } from "@/lib/types";
 import { useEffect, useState } from "react";
+import { orderEventHelpers } from "@/lib/order-events";
 import {
   Dialog,
   DialogContent,
@@ -205,6 +206,8 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
       }
       
       setLoading(false);
+      // Notificar componentes sobre pedido enviado para cozinha
+      orderEventHelpers.notifyOrderUpdated();
       // Atualizar a lista de pedidos no background sem fechar o modal
       router.refresh();
     } catch (error) {
@@ -248,6 +251,9 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
       // Atualizar o pedido após finalizar (sem mostrar loading)
       await fetchOrder(false);
       
+      // Notificar componentes sobre pedido finalizado
+      orderEventHelpers.notifyOrderFinished();
+      
       // Fechar o modal e atualizar a lista
       router.refresh();
       setLoading(false);
@@ -290,6 +296,8 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
         }
       }
 
+      // Notificar componentes sobre pedido deletado
+      orderEventHelpers.notifyOrderDeleted();
       // Atualizar a lista de pedidos e fechar o modal
       router.refresh();
       setLoading(false);
@@ -319,6 +327,9 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
       setShowAddItem(false);
       setSelectedProduct(null);
       setQuantity(1);
+      
+      // Notificar componentes sobre atualização do pedido
+      orderEventHelpers.notifyOrderUpdated();
       router.refresh();
     } catch (error) {
       console.error("Erro ao adicionar item:", error);
@@ -396,6 +407,9 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
         router.refresh();
         return;
       }
+
+      // Notificar componentes sobre pedido recebido
+      orderEventHelpers.notifyOrderReceived();
 
       // Sucesso: fechar modal de recebimento e atualizar
       setShowReceive(false);

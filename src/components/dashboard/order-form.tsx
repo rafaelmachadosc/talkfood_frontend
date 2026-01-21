@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import { createOrderAction } from "@/actions/orders";
 import { useRouter } from "next/navigation";
+import { orderEventHelpers } from "@/lib/order-events";
 
 export function OrderForm() {
   const router = useRouter();
@@ -48,6 +49,14 @@ export function OrderForm() {
       setOrderType("MESA");
       setTable("");
       setName("");
+      
+      // Notificar componentes sobre novo pedido criado
+      if (orderType === "MESA") {
+        orderEventHelpers.notifyTableOpened();
+      } else {
+        orderEventHelpers.notifyOrderCreated();
+      }
+      
       router.refresh();
       return;
     } else {

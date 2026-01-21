@@ -13,6 +13,7 @@ import { OrderModal } from "@/components/dashboard/ordere-modal";
 import { markOrderAsViewedAction } from "@/actions/orders";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { orderEvents } from "@/lib/order-events";
 
 interface KitchenProps {
   token: string;
@@ -30,7 +31,7 @@ interface GroupedOrders {
 
 export function Kitchen({ token }: KitchenProps) {
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [orders, setOrders] = useState<Order[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<null | string>(null);
 
@@ -90,20 +91,17 @@ export function Kitchen({ token }: KitchenProps) {
     }
   };
 
+  // Carregamento reativo: escuta eventos de mudanças (novo pedido, mesa aberta, etc)
   useEffect(() => {
-    async function loadOrders() {
-      await fetchOrders();
-    }
-
-    loadOrders();
-
-    // Atualizar automaticamente a cada 5 segundos para manter sincronização com Pedidos
-    const interval = setInterval(() => {
+    const unsubscribe = orderEvents.on("refresh:orders", () => {
       fetchOrders();
-    }, 5000);
+    });
 
-    return () => clearInterval(interval);
-  }, []);
+    return () => {
+      unsubscribe();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]); // token é estável, fetchOrders é definido dentro do componente
 
   const calculateOrderTotal = (order: Order) => {
     if (!order.items) return 0;

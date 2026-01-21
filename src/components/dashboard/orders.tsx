@@ -14,6 +14,7 @@ import { OrderForm } from "@/components/dashboard/order-form";
 import { markOrderAsViewedAction } from "@/actions/orders";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { orderEvents, orderEventHelpers } from "@/lib/order-events";
 
 interface OrdersProps {
   token: string;
@@ -33,7 +34,7 @@ interface GroupedOrders {
 
 export function Orders({ token }: OrdersProps) {
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [orders, setOrders] = useState<Order[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<null | string>(null);
 
@@ -94,20 +95,17 @@ export function Orders({ token }: OrdersProps) {
     }
   };
 
+  // Carregamento reativo: escuta eventos de mudanças (novo pedido, mesa aberta, etc)
   useEffect(() => {
-    async function loadOrders() {
-      await fetchOrders();
-    }
-
-    loadOrders();
-
-    // Atualizar automaticamente a cada 5 segundos para manter sincronização com Cozinha
-    const interval = setInterval(() => {
+    const unsubscribe = orderEvents.on("refresh:orders", () => {
       fetchOrders();
-    }, 5000);
+    });
 
-    return () => clearInterval(interval);
-  }, []);
+    return () => {
+      unsubscribe();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]); // token é estável, fetchOrders é definido dentro do componente
 
   const calculateOrderTotal = (order: Order) => {
     if (!order.items) return 0;
@@ -120,6 +118,8 @@ export function Orders({ token }: OrdersProps) {
   const handleMarkAsViewed = async (orderId: string) => {
     const result = await markOrderAsViewedAction(orderId);
     if (result.success) {
+      // Notificar componentes sobre pedido visualizado
+      orderEventHelpers.notifyOrderViewed();
       await fetchOrders();
       router.refresh();
     }
@@ -255,6 +255,11 @@ export function Orders({ token }: OrdersProps) {
                 }
                 
                 alert(`Limpeza concluída!\n${deleted} pedido(s) deletado(s).${errors > 0 ? `\n${errors} erro(s) ao deletar.` : ""}`);
+                
+                // Notificar componentes sobre pedidos deletados
+                if (deleted > 0) {
+                  orderEventHelpers.notifyOrderDeleted();
+                }
                 
                 await fetchOrders();
                 router.refresh();
