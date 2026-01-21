@@ -5,6 +5,30 @@ import { redirect } from "next/navigation";
 
 const COOKIE_NAME = "token_pizzaria";
 
+/**
+ * Normaliza o role do usuário (número ou string) para string uppercase
+ * Suporta:
+ * - Número: 1 = ADMIN, outros = STAFF
+ * - String: "admin", "Admin", "ADMIN" → "ADMIN"
+ * 
+ * @param role - Role do usuário (número ou string)
+ * @returns Role normalizado como string uppercase
+ */
+function normalizeRole(role: unknown): string {
+  // Se for número
+  if (typeof role === "number") {
+    return role === 1 ? "ADMIN" : "STAFF";
+  }
+
+  // Se for string, retornar em uppercase
+  if (typeof role === "string") {
+    return role.toUpperCase();
+  }
+
+  // Fallback seguro (nunca deve chegar aqui, mas garante que não quebra)
+  return "STAFF";
+}
+
 export async function getToken(): Promise<string | undefined> {
   const cookieStore = await cookies();
   return cookieStore.get(COOKIE_NAME)?.value;
@@ -52,7 +76,9 @@ export async function requiredAdmin(): Promise<User> {
     redirect("/login");
   }
 
-  if (user.role.toUpperCase() !== "ADMIN") {
+  // Normalizar role para garantir compatibilidade com número ou string
+  const normalizedRole = normalizeRole(user.role);
+  if (normalizedRole !== "ADMIN") {
     redirect("/access-denied");
   }
 
