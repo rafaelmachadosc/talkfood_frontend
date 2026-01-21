@@ -19,18 +19,51 @@ export async function createOrderAction(data: {
       return { success: false, error: "Erro ao criar pedido" };
     }
 
-    // Backend espera items mesmo que vazio
-    await api.post("/api/order", {
-      ...data,
+    // Construir payload limpo, removendo campos undefined
+    const payload: Record<string, unknown> = {
+      orderType: data.orderType,
       items: [], // Array vazio para satisfazer validação do backend
-    }, { token });
+    };
+
+    // Adicionar campos específicos baseado no tipo de pedido
+    if (data.orderType === "MESA") {
+      // Para MESA, table é obrigatório
+      if (data.table === undefined || data.table === null) {
+        return { success: false, error: "Número da mesa é obrigatório" };
+      }
+      payload.table = Number(data.table); // Garantir que é número
+    } else if (data.orderType === "BALCAO") {
+      // Para BALCÃO, name é obrigatório
+      if (!data.name || data.name.trim() === "") {
+        return { success: false, error: "Nome do cliente é obrigatório" };
+      }
+      payload.name = data.name.trim();
+      // phone é opcional
+      if (data.phone && data.phone.trim() !== "") {
+        payload.phone = data.phone.trim();
+      }
+    }
+
+    // Log do payload em desenvolvimento para debug
+    if (process.env.NODE_ENV === "development") {
+      console.log("[createOrderAction] Payload:", JSON.stringify(payload, null, 2));
+    }
+
+    await api.post("/api/order", payload, { token });
 
     revalidatePath("/dashboard");
 
     return { success: true, error: "" };
   } catch (error) {
+    console.error("[createOrderAction] Erro ao criar pedido:", error);
+    
     if (error instanceof Error) {
-      return { success: false, error: error.message };
+      // Melhorar mensagem de erro para 400
+      let errorMessage = error.message;
+      if (errorMessage.includes("400") || errorMessage.includes("Bad Request")) {
+        errorMessage = `Erro ao criar pedido: ${errorMessage}. Verifique se todos os campos obrigatórios foram preenchidos corretamente.`;
+      }
+      return { success: false, error: errorMessage };
     }
 
     return { success: false, error: "Erro ao criar pedido" };

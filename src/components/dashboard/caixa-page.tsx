@@ -44,11 +44,39 @@ export function CaixaPage({ token }: CaixaPageProps) {
   const [showOpenDialog, setShowOpenDialog] = useState(false);
   const [showCloseDialog, setShowCloseDialog] = useState(false);
   const [showChangeDialog, setShowChangeDialog] = useState(false);
-  const [initialAmountRaw, setInitialAmountRaw] = useState(""); // Apenas dígitos
+  const [initialAmountRaw, setInitialAmountRaw] = useState(""); // Valor formatado (R$ 1.500,00)
   const [receivedAmountRaw, setReceivedAmountRaw] = useState(""); // Apenas dígitos
   const [changeAmount, setChangeAmount] = useState("");
 
-  // Função para formatar valor monetário para exibição (R$ 155,00)
+  // Função para formatar valor monetário como no campo de preço do produto (R$ 1.500,00)
+  function formatToBrl(value: string): string {
+    // REMOVER TUDO QUE NÃO é numero
+    const numbers = value.replace(/\D/g, "");
+
+    if (!numbers) return "";
+
+    // Converter para numero e dividir por 100 para ter os centavos
+    const amount = parseInt(numbers) / 100;
+
+    return amount.toLocaleString("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    });
+  }
+
+  // Função para converter valor formatado (R$ 1.500,00) para centavos
+  function convertBRLToCents(value: string): number {
+    const cleanValue = value
+      .replace(/[R$\s]/g, "")
+      .replace(/\./g, "")
+      .replace(",", ".");
+
+    const reais = parseFloat(cleanValue) || 0;
+
+    return Math.round(reais * 100);
+  }
+
+  // Função para formatar valor monetário para exibição (R$ 155,00) - mantida para outros campos
   const formatCurrencyDisplay = (digits: string): string => {
     if (!digits || digits === "") return "";
     
@@ -70,6 +98,12 @@ export function CaixaPage({ token }: CaixaPageProps) {
     const number = parseInt(digits, 10);
     return isNaN(number) ? 0 : number;
   };
+
+  // Handler para mudança do valor inicial (mesma lógica do campo de preço)
+  function handleInitialAmountChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const formatted = formatToBrl(e.target.value);
+    setInitialAmountRaw(formatted);
+  }
 
   useEffect(() => {
     loadCaixaStatus();
@@ -114,10 +148,10 @@ export function CaixaPage({ token }: CaixaPageProps) {
 
   const handleOpenCaixa = async () => {
     try {
-      // Converter dígitos para número em reais
-      const amount = parseCurrency(initialAmountRaw);
+      // Converter valor formatado (R$ 1.500,00) para centavos
+      const amountInCents = convertBRLToCents(initialAmountRaw);
       
-      if (amount <= 0) {
+      if (amountInCents <= 0) {
         alert("Por favor, informe um valor inicial válido.");
         return;
       }
@@ -125,7 +159,7 @@ export function CaixaPage({ token }: CaixaPageProps) {
       await apiClient("/api/caixa/open", {
         method: "POST",
         token: token,
-        body: JSON.stringify({ initialAmount: Math.round(amount * 100) }), // Converter para centavos
+        body: JSON.stringify({ initialAmount: amountInCents }), // Já está em centavos
         silent404: true, // Silenciar erro 404 (endpoint pode não existir)
       });
       
@@ -332,20 +366,10 @@ export function CaixaPage({ token }: CaixaPageProps) {
               <Input
                 id="initialAmount"
                 type="text"
-                placeholder="0,00"
+                placeholder="Ex: 35,00"
                 className="border-app-border bg-white text-black"
-                value={initialAmountRaw ? formatCurrencyDisplay(initialAmountRaw) : ""}
-                onChange={(e) => {
-                  // Remove todos os caracteres não numéricos
-                  const inputValue = e.target.value;
-                  const digits = inputValue.replace(/\D/g, "");
-                  
-                  // Limita a um tamanho razoável (10 dígitos = 999.999.999,99)
-                  const limitedDigits = digits.slice(0, 10);
-                  
-                  // Atualiza o estado raw apenas com dígitos
-                  setInitialAmountRaw(limitedDigits);
-                }}
+                value={initialAmountRaw}
+                onChange={handleInitialAmountChange}
               />
             </div>
             <div className="flex gap-3">
@@ -359,7 +383,7 @@ export function CaixaPage({ token }: CaixaPageProps) {
               <Button
                 onClick={handleOpenCaixa}
                 className="flex-1 bg-brand-primary hover:bg-brand-primary/90 text-black tech-shadow tech-hover font-normal"
-                disabled={!initialAmountRaw || parseCurrency(initialAmountRaw) <= 0}
+                disabled={!initialAmountRaw || convertBRLToCents(initialAmountRaw) <= 0}
               >
                 Abrir Caixa
               </Button>
