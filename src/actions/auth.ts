@@ -48,7 +48,7 @@ export async function loginAction(
       password: password,
     };
 
-    const response = await apiClient<AuthResponse>("/api/auth/session", {
+    const response = await apiClient<{ token: string; user: User }>("/api/auth/session", {
       method: "POST",
       body: JSON.stringify(data),
     });
