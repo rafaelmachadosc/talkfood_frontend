@@ -233,12 +233,15 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
         setProducts(productsList);
         
         // Debug: verificar dados carregados
-        console.log("Categorias carregadas:", categoriesList.map(c => ({ id: c.id, name: c.name })));
-        console.log("Produtos carregados:", productsList.map(p => ({ name: p.name, category_id: p.category_id, category_id_type: typeof p.category_id })));
-        
-        // Debug: verificar dados carregados
-        console.log("Categorias carregadas:", categoriesData);
-        console.log("Produtos carregados:", productsData?.map(p => ({ name: p.name, category_id: p.category_id })));
+        if (process.env.NODE_ENV === "development") {
+          console.log("Categorias carregadas:", categoriesList.map(c => ({ id: c.id, name: c.name, idType: typeof c.id })));
+          console.log("Produtos carregados:", productsList.map(p => ({ 
+            name: p.name, 
+            category_id: p.category_id, 
+            category_idType: typeof p.category_id,
+            category_idString: String(p.category_id)
+          })));
+        }
       } catch (err) {
         console.error("Erro ao carregar produtos e categorias:", err);
         // Mostrar erro ao usuário
@@ -861,35 +864,49 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
                   <SelectValue placeholder="Selecione um produto" />
                 </SelectTrigger>
                 <SelectContent className="bg-app-card border-app-border max-h-60">
-                  {products
-                    .filter((p) => {
-                      // Filtrar produtos desabilitados
-                      if (p.disabled) return false;
-                      
-                      // Se nenhuma categoria selecionada, mostrar todos
-                      if (selectedCategory === null || selectedCategory === "" || selectedCategory === "all") {
-                        return true;
-                      }
-                      
-                      // Comparar category_id (garantir que ambos sejam strings para comparação)
+                  {(() => {
+                    // Filtrar produtos desabilitados primeiro
+                    const enabledProducts = products.filter(p => !p.disabled);
+                    
+                    // Se nenhuma categoria selecionada, mostrar todos
+                    if (!selectedCategory || selectedCategory === "" || selectedCategory === "all") {
+                      return enabledProducts;
+                    }
+                    
+                    // Filtrar por categoria selecionada
+                    const selectedCategoryId = String(selectedCategory).trim();
+                    const filtered = enabledProducts.filter((p) => {
                       const productCategoryId = String(p.category_id || "").trim();
-                      const selectedCategoryId = String(selectedCategory || "").trim();
                       
-                      // Debug: log apenas quando há categoria selecionada
-                      if (selectedCategoryId && selectedCategoryId !== "all") {
-                        console.log("Filtro categoria:", {
+                      // Comparação exata (case-sensitive para IDs)
+                      const match = productCategoryId === selectedCategoryId;
+                      
+                      // Debug em desenvolvimento
+                      if (process.env.NODE_ENV === "development" && !match) {
+                        console.log("Produto não corresponde:", {
                           productName: p.name,
                           productCategoryId,
                           selectedCategoryId,
-                          match: productCategoryId === selectedCategoryId,
                           productCategoryIdType: typeof p.category_id,
                           selectedCategoryType: typeof selectedCategory
                         });
                       }
                       
-                      // Comparação case-insensitive e removendo espaços
-                      return productCategoryId.toLowerCase() === selectedCategoryId.toLowerCase();
-                    })
+                      return match;
+                    });
+                    
+                    // Debug: mostrar quantos produtos foram encontrados
+                    if (process.env.NODE_ENV === "development") {
+                      console.log("Filtro categoria aplicado:", {
+                        selectedCategoryId,
+                        totalProducts: enabledProducts.length,
+                        filteredProducts: filtered.length,
+                        filteredNames: filtered.map(p => p.name)
+                      });
+                    }
+                    
+                    return filtered;
+                  })()
                     .map((product) => (
                       <SelectItem
                         key={product.id}

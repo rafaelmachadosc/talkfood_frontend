@@ -91,10 +91,10 @@ export default async function Products() {
                   <TableHeader>
                     <TableRow className="border-app-border hover:bg-transparent bg-app-background/50">
                       <TableHead className="text-black w-12"></TableHead>
-                      <TableHead className="text-black font-normal">Nome</TableHead>
-                      <TableHead className="text-black font-normal">Categoria</TableHead>
+                      <TableHead className="text-black font-normal w-[200px]">Nome</TableHead>
+                      <TableHead className="text-black font-normal w-[150px]">Categoria</TableHead>
                       <TableHead className="text-black font-normal">Descrição</TableHead>
-                      <TableHead className="text-black font-normal text-right">Preço</TableHead>
+                      <TableHead className="text-black font-normal text-right w-[120px]">Preço</TableHead>
                       <TableHead className="text-black font-normal text-right w-32">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -109,13 +109,13 @@ export default async function Products() {
                           key={product.id}
                           className="border-app-border hover:bg-app-background/30 transition-colors"
                         >
-                          <TableCell className="py-3">
+                          <TableCell className="py-3 w-12">
                             <Package className="w-4 h-4 text-gray-600 icon-3d" />
                           </TableCell>
-                          <TableCell className="text-black font-normal py-3">
+                          <TableCell className="text-black font-normal py-3 w-[200px]">
                             {product.name}
                           </TableCell>
-                          <TableCell className="text-gray-600 text-sm py-3">
+                          <TableCell className="text-gray-600 text-sm py-3 w-[150px]">
                             <span className="inline-block px-2 py-1 bg-gray-100 rounded text-xs">
                               {categoryName}
                             </span>
@@ -123,12 +123,12 @@ export default async function Products() {
                           <TableCell className="text-gray-700 text-sm py-3 max-w-md truncate">
                             {product.description}
                           </TableCell>
-                          <TableCell className="text-right py-3">
+                          <TableCell className="text-right py-3 w-[120px]">
                             <span className="text-brand-primary font-normal">
                               {formatPrice(product.price)}
                             </span>
                           </TableCell>
-                          <TableCell className="text-right py-3">
+                          <TableCell className="text-right py-3 w-32">
                             <ProductActions product={product} categories={categories} />
                           </TableCell>
                         </TableRow>
