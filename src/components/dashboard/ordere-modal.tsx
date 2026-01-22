@@ -226,8 +226,19 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
           }),
         ]);
 
-        setCategories(categoriesData || []);
-        setProducts(productsData || []);
+        const categoriesList = categoriesData || [];
+        const productsList = productsData || [];
+        
+        setCategories(categoriesList);
+        setProducts(productsList);
+        
+        // Debug: verificar dados carregados
+        console.log("Categorias carregadas:", categoriesList.map(c => ({ id: c.id, name: c.name })));
+        console.log("Produtos carregados:", productsList.map(p => ({ name: p.name, category_id: p.category_id, category_id_type: typeof p.category_id })));
+        
+        // Debug: verificar dados carregados
+        console.log("Categorias carregadas:", categoriesData);
+        console.log("Produtos carregados:", productsData?.map(p => ({ name: p.name, category_id: p.category_id })));
       } catch (err) {
         console.error("Erro ao carregar produtos e categorias:", err);
         // Mostrar erro ao usuário
@@ -856,15 +867,28 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
                       if (p.disabled) return false;
                       
                       // Se nenhuma categoria selecionada, mostrar todos
-                      if (selectedCategory === null || selectedCategory === "") {
+                      if (selectedCategory === null || selectedCategory === "" || selectedCategory === "all") {
                         return true;
                       }
                       
                       // Comparar category_id (garantir que ambos sejam strings para comparação)
-                      const productCategoryId = String(p.category_id || "");
-                      const selectedCategoryId = String(selectedCategory || "");
+                      const productCategoryId = String(p.category_id || "").trim();
+                      const selectedCategoryId = String(selectedCategory || "").trim();
                       
-                      return productCategoryId === selectedCategoryId;
+                      // Debug: log apenas quando há categoria selecionada
+                      if (selectedCategoryId && selectedCategoryId !== "all") {
+                        console.log("Filtro categoria:", {
+                          productName: p.name,
+                          productCategoryId,
+                          selectedCategoryId,
+                          match: productCategoryId === selectedCategoryId,
+                          productCategoryIdType: typeof p.category_id,
+                          selectedCategoryType: typeof selectedCategory
+                        });
+                      }
+                      
+                      // Comparação case-insensitive e removendo espaços
+                      return productCategoryId.toLowerCase() === selectedCategoryId.toLowerCase();
                     })
                     .map((product) => (
                       <SelectItem

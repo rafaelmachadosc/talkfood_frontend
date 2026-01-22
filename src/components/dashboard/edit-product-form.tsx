@@ -36,13 +36,16 @@ export function EditProductForm({
   onOpenChange,
 }: EditProductFormProps) {
   const router = useRouter();
-  const [selectedCategory, setSelectedCategory] = useState(product.category_id);
+  const [selectedCategory, setSelectedCategory] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [priceValue, setPriceValue] = useState("");
 
   useEffect(() => {
     if (product) {
-      setSelectedCategory(product.category_id);
+      // Garantir que category_id seja string e esteja definido
+      const categoryId = String(product.category_id || "").trim();
+      setSelectedCategory(categoryId);
+      
       // Converter centavos para formato BRL
       const priceInReais = product.price / 100;
       setPriceValue(
@@ -52,7 +55,7 @@ export function EditProductForm({
         })
       );
     }
-  }, [product]);
+  }, [product, open]); // Adicionar 'open' como dependência para resetar quando o modal abrir
 
   function convertBRLToCents(value: string): number {
     const cleanValue = value
@@ -173,23 +176,30 @@ export function EditProductForm({
               Categoria
             </Label>
             <Select
-              value={selectedCategory}
-              onValueChange={setSelectedCategory}
+              value={selectedCategory || ""}
+              onValueChange={(value) => setSelectedCategory(value)}
               required
             >
               <SelectTrigger className="border-app-border bg-app-background text-black">
-                <SelectValue placeholder="Selecione uma categoria" />
+                <SelectValue placeholder="Selecione uma categoria">
+                  {selectedCategory 
+                    ? categories.find(c => String(c.id).trim() === String(selectedCategory).trim())?.name 
+                    : "Selecione uma categoria"}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent className="bg-app-card border-app-border">
-                {categories.map((category) => (
-                  <SelectItem
-                    key={category.id}
-                    value={category.id}
-                    className="text-black hover:bg-transparent cursor-pointer"
-                  >
-                    {category.name}
-                  </SelectItem>
-                ))}
+                {categories.map((category) => {
+                  const categoryId = String(category.id).trim();
+                  return (
+                    <SelectItem
+                      key={category.id}
+                      value={categoryId}
+                      className="text-black hover:bg-transparent cursor-pointer"
+                    >
+                      {category.name}
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
           </div>
