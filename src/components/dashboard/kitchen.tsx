@@ -13,7 +13,7 @@ import { OrderModal } from "@/components/dashboard/ordere-modal";
 import { markOrderAsViewedAction } from "@/actions/orders";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { orderEvents } from "@/lib/order-events";
+import { orderEvents, orderEventHelpers } from "@/lib/order-events";
 
 interface KitchenProps {
   token: string;
