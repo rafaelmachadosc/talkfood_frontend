@@ -33,6 +33,16 @@ export default async function Products() {
     products = await apiClient<Product[]>("/api/products", {
       token: token!,
     }) || [];
+    
+    // Debug: verificar se produtos têm category_id
+    if (process.env.NODE_ENV === "development") {
+      console.log("Produtos carregados:", products.map(p => ({
+        name: p.name,
+        category_id: p.category_id,
+        hasCategory: !!p.category_id,
+        category: p.category
+      })));
+    }
   } catch (error) {
     console.error("Erro ao buscar produtos:", error);
     products = [];

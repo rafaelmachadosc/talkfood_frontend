@@ -153,21 +153,23 @@ export function Orders({ token }: OrdersProps) {
     const grouped: Record<string, GroupedOrders> = {};
 
     orders.forEach((order) => {
-      // Criar chave única: apenas mesa (não telefone) ou "BALCAO"
+      // Criar chave única: mesa agrupa por número, balcão agrupa por ID (cada pedido é único)
       let key: string;
       if (order.orderType === "MESA" && order.table) {
         // Agrupar apenas por mesa - todos os pedidos da mesma mesa ficam juntos
         key = `MESA_${order.table}`;
       } else {
-        key = "BALCAO";
+        // Para BALCÃO, cada pedido é único - usar ID do pedido como chave
+        // Isso permite ter múltiplos pedidos de balcão separados
+        key = `BALCAO_${order.id}`;
       }
 
       if (!grouped[key]) {
         grouped[key] = {
           key,
           table: order.table,
-          name: order.name, // Pegar o nome do primeiro pedido
-          phone: order.phone, // Pegar o telefone do primeiro pedido
+          name: order.name, // Nome do cliente para pedidos de balcão
+          phone: order.phone, // Telefone do cliente
           orders: [],
           hasNewOrders: false,
           hasInProduction: false,
@@ -176,7 +178,10 @@ export function Orders({ token }: OrdersProps) {
         };
       }
 
+      // Adicionar pedido ao grupo
       grouped[key].orders.push(order);
+      
+      // Atualizar flags do grupo
       const isNew = !(order.viewed ?? false);
       if (isNew) {
         grouped[key].hasNewOrders = true;
@@ -354,7 +359,7 @@ export function Orders({ token }: OrdersProps) {
                 <div className="p-2.5 h-full flex flex-col">
                   <div className="flex items-start justify-between gap-1 mb-auto">
                     <CardTitle className="text-xs font-normal tracking-tight">
-                      Balcão
+                      {group.name || "Balcão"}
                     </CardTitle>
                     <div className="flex flex-col items-end gap-0.5">
                       {group.hasNewOrders && (
