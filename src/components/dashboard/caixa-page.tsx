@@ -113,29 +113,25 @@ export function CaixaPage({ token }: CaixaPageProps) {
   const loadCaixaStatus = async () => {
     try {
       setLoading(true);
-      // silent404 para não gerar erro no console se endpoint não existir
-      const status = await apiClient<CaixaStatus | null>("/api/caixa/status", {
+      const status = await apiClient<CaixaStatus>("/api/caixa/status", {
         method: "GET",
         token: token,
-        silent404: true,
       });
       
-      // Se o endpoint não existir (404) ou retornar null, inicializar com estado padrão
-      if (status === null) {
-        setCaixaStatus({
-          isOpen: false,
-          initialAmount: 0,
-          currentAmount: 0,
-          totalSales: 0,
-          totalOrders: 0,
-        });
-      } else {
-        setCaixaStatus(status);
-      }
+      setCaixaStatus(status);
       setLoading(false);
     } catch (error) {
-      // Silenciar todos os erros relacionados ao caixa (endpoint pode não existir)
-      // Usar estado padrão sem mostrar erro no console
+      console.error("Erro ao carregar status do caixa:", error);
+      const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
+      
+      // Se for 404, o endpoint não está implementado
+      if (errorMessage.includes("404") || errorMessage.includes("Not Found")) {
+        alert("Erro: O endpoint GET /api/caixa/status não está implementado no backend. Consulte o arquivo ENDPOINTS_BACKEND.md para implementação.");
+      } else {
+        alert(`Erro ao carregar status do caixa: ${errorMessage}`);
+      }
+      
+      // Usar estado padrão em caso de erro
       setCaixaStatus({
         isOpen: false,
         initialAmount: 0,
@@ -179,7 +175,7 @@ export function CaixaPage({ token }: CaixaPageProps) {
         errorMessage.includes("404") || 
         errorMessage.includes("Not Found")
       ) {
-        alert("Erro: O endpoint de abertura de caixa não está implementado no backend. Por favor, implemente o endpoint POST /api/caixa/open no servidor.");
+        alert("Erro: O endpoint POST /api/caixa/open não está implementado no backend. Consulte o arquivo ENDPOINTS_BACKEND.md para implementação.");
       } else if (errorMessage.includes("400") || errorMessage.includes("Bad Request")) {
         alert(`Erro ao abrir caixa: ${errorMessage}. Verifique se o valor foi informado corretamente.`);
       } else {

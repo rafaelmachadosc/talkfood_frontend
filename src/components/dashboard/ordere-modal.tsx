@@ -87,7 +87,13 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
         setLoading(false);
       }
       console.error("Erro ao buscar pedido:", err);
-      // Não limpar o order para manter o modal aberto mesmo com erro
+      // Se for erro 400 ou 404, pode ser que o pedido não existe mais
+      // Não limpar o order para manter o modal aberto, mas logar o aviso
+      if (err instanceof Error) {
+        if (err.message.includes("400") || err.message.includes("404")) {
+          console.warn(`Pedido ${orderId} não encontrado ou inválido:`, err.message);
+        }
+      }
       return null;
     }
   };
@@ -146,10 +152,14 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
           }),
         ]);
 
-        setCategories(categoriesData);
-        setProducts(productsData);
+        setCategories(categoriesData || []);
+        setProducts(productsData || []);
       } catch (err) {
         console.error("Erro ao carregar produtos e categorias:", err);
+        // Mostrar erro ao usuário
+        alert("Erro ao carregar produtos e categorias. Verifique se os endpoints estão implementados no backend.");
+        setCategories([]);
+        setProducts([]);
       }
     }
 
@@ -451,6 +461,9 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
           <DialogTitle className="text-2xl font-normal tracking-tight">
             Detalhe do pedido
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            Visualize e gerencie os detalhes do pedido, adicione itens, envie para produção ou receba o pagamento
+          </DialogDescription>
         </DialogHeader>
 
         {loading ? (
