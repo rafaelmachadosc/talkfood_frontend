@@ -38,9 +38,11 @@ export function Orders({ token }: OrdersProps) {
   const [orders, setOrders] = useState<Order[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<null | string>(null);
 
-  const fetchOrders = async () => {
+  const fetchOrders = async (showLoading = true) => {
     try {
-      setLoading(true);
+      if (showLoading) {
+        setLoading(true);
+      }
       // Buscar todos os pedidos (incluindo rascunhos) para mostrar mesas abertas
       // Mesas criadas manualmente podem começar como rascunho
       // Usar silent404 para não quebrar se endpoints não existirem ainda
@@ -87,18 +89,28 @@ export function Orders({ token }: OrdersProps) {
       });
 
       setOrders(sortedOrders);
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      }
     } catch (err) {
       console.error("Erro ao buscar pedidos:", err);
       setOrders([]);
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      }
     }
   };
 
+  // Carregamento inicial: carregar pedidos quando a página é aberta
+  useEffect(() => {
+    fetchOrders(true); // Mostrar loading apenas no carregamento inicial
+  }, [token]);
+
   // Carregamento reativo: escuta eventos de mudanças (novo pedido, mesa aberta, etc)
+  // Atualização silenciosa (sem mostrar loading)
   useEffect(() => {
     const unsubscribe = orderEvents.on("refresh:orders", () => {
-      fetchOrders();
+      fetchOrders(false); // Atualização silenciosa
     });
 
     return () => {
@@ -118,10 +130,10 @@ export function Orders({ token }: OrdersProps) {
   const handleMarkAsViewed = async (orderId: string) => {
     const result = await markOrderAsViewedAction(orderId);
     if (result.success) {
-      // Notificar componentes sobre pedido visualizado
+      // Notificar componentes sobre pedido visualizado (atualização silenciosa)
       orderEventHelpers.notifyOrderViewed();
-      await fetchOrders();
-      router.refresh();
+      // Atualizar silenciosamente (sem mostrar loading)
+      await fetchOrders(false);
     }
   };
 
@@ -256,13 +268,13 @@ export function Orders({ token }: OrdersProps) {
                 
                 alert(`Limpeza concluída!\n${deleted} pedido(s) deletado(s).${errors > 0 ? `\n${errors} erro(s) ao deletar.` : ""}`);
                 
-                // Notificar componentes sobre pedidos deletados
+                // Notificar componentes sobre pedidos deletados (atualização silenciosa)
                 if (deleted > 0) {
                   orderEventHelpers.notifyOrderDeleted();
                 }
                 
-                await fetchOrders();
-                router.refresh();
+                // Atualizar silenciosamente (sem mostrar loading)
+                await fetchOrders(false);
               } catch (err) {
                 console.error("Erro ao limpar pedidos:", err);
                 alert("Erro ao limpar pedidos. Verifique o console para mais detalhes.");
@@ -417,7 +429,13 @@ export function Orders({ token }: OrdersProps) {
                         )}
                         onClick={() => {
                           if (isOccupied && group && group.orders.length > 0) {
-                            setSelectedOrder(group.orders[0]?.id || null);
+                            const firstOrderId = group.orders[0]?.id;
+                            if (firstOrderId) {
+                              setSelectedOrder(firstOrderId);
+                            } else {
+                              console.error("Erro: Pedido sem ID válido", group.orders[0]);
+                              alert("Erro: Pedido sem ID válido. Por favor, recarregue a página.");
+                            }
                           }
                         }}
                       >
@@ -477,8 +495,8 @@ export function Orders({ token }: OrdersProps) {
         orderId={selectedOrder}
         onClose={async () => {
           setSelectedOrder(null);
-          await fetchOrders();
-          router.refresh();
+          // Atualizar silenciosamente (sem mostrar loading) ao fechar o modal
+          await fetchOrders(false);
         }}
         token={token}
       />

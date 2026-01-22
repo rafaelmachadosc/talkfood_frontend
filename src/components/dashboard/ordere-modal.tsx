@@ -45,15 +45,48 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
-  const [receivedAmount, setReceivedAmount] = useState("");
+  const [receivedAmount, setReceivedAmount] = useState(""); // Valor formatado (R$ 15,00)
   const [paymentMethod, setPaymentMethod] = useState<string>("DINHEIRO");
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const router = useRouter();
 
+  // Função para formatar valor monetário como no campo de preço do produto (R$ 1.500,00)
+  function formatToBrl(value: string): string {
+    // REMOVER TUDO QUE NÃO é numero
+    const numbers = value.replace(/\D/g, "");
+
+    if (!numbers) return "";
+
+    // Converter para numero e dividir por 100 para ter os centavos
+    const amount = parseInt(numbers) / 100;
+
+    return amount.toLocaleString("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    });
+  }
+
+  // Função para converter valor formatado (R$ 15,00) para reais (número)
+  function convertBRLToReais(value: string): number {
+    const cleanValue = value
+      .replace(/[R$\s]/g, "")
+      .replace(/\./g, "")
+      .replace(",", ".");
+
+    return parseFloat(cleanValue) || 0;
+  }
+
   const fetchOrder = async (showLoading = true) => {
     if (!orderId) {
       setOrder(null);
-      return;
+      setLoading(false);
+      return null;
+    }
+
+    // Limpar estado anterior antes de buscar novo pedido
+    // Isso evita que informações do pedido anterior apareçam enquanto carrega
+    if (showLoading) {
+      setOrder(null);
     }
 
     try {
@@ -70,12 +103,20 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
       );
 
       // RETORNO DETALHE DA ORDER
-      if (response) {
+      // Verificar se a resposta corresponde ao orderId atual (evitar race condition)
+      if (response && response.id === orderId) {
         setOrder(response);
         if (showLoading) {
           setLoading(false);
         }
         return response;
+      } else if (response) {
+        // Se a resposta não corresponde ao orderId atual, ignorar (pedido mudou)
+        console.warn(`Resposta de pedido não corresponde ao orderId atual. Esperado: ${orderId}, Recebido: ${response.id}`);
+        if (showLoading) {
+          setLoading(false);
+        }
+        return null;
       }
 
       if (showLoading) {
@@ -97,6 +138,27 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
       return null;
     }
   };
+
+  // Limpar todos os estados quando o orderId mudar (ao trocar de pedido)
+  useEffect(() => {
+    // Limpar estados do formulário de adicionar item
+    setShowAddItem(false);
+    setSelectedCategory(null);
+    setSelectedProduct(null);
+    setQuantity(1);
+    
+    // Limpar estados do formulário de receber
+    setShowReceive(false);
+    setReceivedAmount("");
+    setPaymentMethod("DINHEIRO");
+    
+    // Limpar seleção de itens
+    setSelectedItems(new Set());
+    
+    // Limpar estado de loading/receiving
+    setLoading(false);
+    setReceiving(false);
+  }, [orderId]);
 
   useEffect(() => {
     async function loadOrders() {
@@ -124,16 +186,28 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
   }, [orderId, token]);
 
   // Selecionar todos os itens quando o pedido é carregado (se ainda não foi enviado para produção)
+  // IMPORTANTE: Só executar se o order corresponde ao orderId atual (evitar estado de pedido anterior)
   useEffect(() => {
-    if (order && order.draft && order.items) {
+    if (!order || !orderId) {
+      setSelectedItems(new Set());
+      return;
+    }
+
+    // Garantir que o order corresponde ao orderId atual (evitar estado de pedido anterior)
+    if (order.id !== orderId) {
+      setSelectedItems(new Set());
+      return;
+    }
+
+    if (order.draft && order.items && order.items.length > 0) {
       // Inicializar com todos os itens selecionados
       const allItemIds = new Set(order.items.map((item) => item.id));
       setSelectedItems(allItemIds);
-    } else if (order && !order.draft) {
+    } else if (!order.draft) {
       // Se o pedido foi enviado para produção, limpar seleção
       setSelectedItems(new Set());
     }
-  }, [order]);
+  }, [order, orderId]);
 
   // Carregar produtos e categorias quando o modal abrir
   useEffect(() => {
@@ -167,18 +241,6 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
       loadProductsAndCategories();
     }
   }, [orderId, token]);
-
-  // Selecionar todos os itens quando o pedido é carregado (se ainda não foi enviado para produção)
-  useEffect(() => {
-    if (order && order.draft && order.items) {
-      // Inicializar com todos os itens selecionados
-      const allItemIds = new Set(order.items.map((item) => item.id));
-      setSelectedItems(allItemIds);
-    } else if (order && !order.draft) {
-      // Se o pedido foi enviado para produção, limpar seleção
-      setSelectedItems(new Set());
-    }
-  }, [order]);
 
   // Calcula o total do pedido
   const calculateTotal = () => {
@@ -225,10 +287,8 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
       }
       
       setLoading(false);
-      // Notificar componentes sobre pedido enviado para cozinha
+      // Notificar componentes sobre pedido enviado para cozinha (atualização silenciosa)
       orderEventHelpers.notifyOrderUpdated();
-      // Atualizar a lista de pedidos no background sem fechar o modal
-      router.refresh();
     } catch (error) {
       console.error("Erro ao enviar pedido:", error);
       alert(error instanceof Error ? error.message : "Erro ao enviar pedido para cozinha");
@@ -243,7 +303,6 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
     if (order.status) {
       alert("Este pedido já foi finalizado.");
       await fetchOrder(false);
-      router.refresh();
       return;
     }
 
@@ -270,11 +329,10 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
       // Atualizar o pedido após finalizar (sem mostrar loading)
       await fetchOrder(false);
       
-      // Notificar componentes sobre pedido finalizado
+      // Notificar componentes sobre pedido finalizado (atualização silenciosa)
       orderEventHelpers.notifyOrderFinished();
       
-      // Fechar o modal e atualizar a lista
-      router.refresh();
+      // Fechar o modal (a lista será atualizada automaticamente via eventos)
       setLoading(false);
       onClose();
     } catch (error) {
@@ -315,10 +373,9 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
         }
       }
 
-      // Notificar componentes sobre pedido deletado
+      // Notificar componentes sobre pedido deletado (atualização silenciosa)
       orderEventHelpers.notifyOrderDeleted();
-      // Atualizar a lista de pedidos e fechar o modal
-      router.refresh();
+      // Fechar o modal (a lista será atualizada automaticamente via eventos)
       setLoading(false);
       onClose();
     } catch (error) {
@@ -354,24 +411,33 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
       setSelectedProduct(null);
       setQuantity(1);
       
-      // Notificar componentes sobre atualização do pedido
+      // Notificar componentes sobre atualização do pedido (atualização silenciosa)
       orderEventHelpers.notifyOrderUpdated();
-      router.refresh();
     } catch (error) {
       console.error("Erro ao adicionar item:", error);
-      const errorMessage = error instanceof Error ? error.message : "Erro ao adicionar item";
-      alert(errorMessage);
+      alert(error instanceof Error ? error.message : "Erro ao adicionar item");
     }
   };
 
-  const calculateChange = () => {
-    const received = parseFloat(receivedAmount.replace(/[^\d,]/g, "").replace(",", ".")) || 0;
+  const calculateChange = (): number => {
+    if (!receivedAmount || !order) return 0;
+
+    // Converter valor recebido formatado (R$ 15,00) para reais
+    const received = convertBRLToReais(receivedAmount);
+    
     // Usar total selecionado se houver seleção parcial, senão usar total completo
-    const total = order?.draft && selectedItems.size > 0 && selectedItems.size < (order.items?.length || 0)
+    // calculateSelectedTotal() e calculateTotal() retornam valores em centavos
+    const totalInCents = order.draft && selectedItems.size > 0 && selectedItems.size < (order.items?.length || 0)
       ? calculateSelectedTotal()
       : calculateTotal();
-    const change = received - total / 100;
-    return change >= 0 ? change : 0;
+    
+    // Converter total de centavos para reais
+    const total = totalInCents / 100;
+    
+    // Calcular troco: valor recebido - total do pedido
+    const change = received - total;
+    
+    return change >= 0 ? change : change; // Retornar negativo se insuficiente
   };
 
   const handleReceiveOrder = async () => {
@@ -382,7 +448,6 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
       alert("Este pedido já foi finalizado e recebido.");
       setShowReceive(false);
       await fetchOrder(false);
-      router.refresh();
       return;
     }
 
@@ -397,10 +462,11 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
       ? calculateSelectedTotal()
       : calculateTotal();
     
+    // Converter valor recebido formatado (R$ 15,00) para reais
     const received = paymentMethod === "DINHEIRO" 
-      ? parseFloat(receivedAmount.replace(/[^\d,]/g, "").replace(",", ".")) || 0
-      : selectedTotal / 100;
-    const total = selectedTotal / 100;
+      ? convertBRLToReais(receivedAmount)
+      : selectedTotal / 100; // selectedTotal já está em centavos
+    const total = selectedTotal / 100; // Converter de centavos para reais
     
     if (paymentMethod === "DINHEIRO" && received < total) {
       alert("Valor recebido é menor que o total do pedido");
@@ -431,18 +497,16 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
         }
         
         setReceiving(false);
-        router.refresh();
         return;
       }
 
-      // Notificar componentes sobre pedido recebido
+      // Notificar componentes sobre pedido recebido (atualização silenciosa)
       orderEventHelpers.notifyOrderReceived();
 
-      // Sucesso: fechar modal de recebimento e atualizar
+      // Sucesso: fechar modal de recebimento
       setShowReceive(false);
       setReceivedAmount("");
       setPaymentMethod("DINHEIRO");
-      router.refresh();
       setReceiving(false);
       onClose();
     } catch (error) {
@@ -871,22 +935,23 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
                 <Input
                   id="receivedAmount"
                   type="text"
-                  placeholder="0,00"
+                  placeholder="Ex: 35,00"
                   className="border-app-border bg-white text-black"
                   value={receivedAmount}
                   onChange={(e) => {
-                    const value = e.target.value.replace(/[^\d,]/g, "");
-                    setReceivedAmount(value);
+                    // Aplicar formatação automática como no campo de preço
+                    const formatted = formatToBrl(e.target.value);
+                    setReceivedAmount(formatted);
                   }}
                 />
-                {receivedAmount && calculateChange() > 0 && (
+                {receivedAmount && calculateChange() >= 0 && (
                   <p className="text-sm text-green-600 mt-2 font-normal">
-                    Troco: {formatPrice(calculateChange())}
+                    Troco: {formatPrice(calculateChange() * 100)}
                   </p>
                 )}
                 {receivedAmount && calculateChange() < 0 && (
                   <p className="text-sm text-red-600 mt-2">
-                    Valor insuficiente. Faltam: {formatPrice(Math.abs(calculateChange()))}
+                    Valor insuficiente. Faltam: {formatPrice(Math.abs(calculateChange()) * 100)}
                   </p>
                 )}
               </div>

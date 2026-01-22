@@ -35,9 +35,11 @@ export function Kitchen({ token }: KitchenProps) {
   const [orders, setOrders] = useState<Order[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<null | string>(null);
 
-  const fetchOrders = async () => {
+  const fetchOrders = async (showLoading = true) => {
     try {
-      setLoading(true);
+      if (showLoading) {
+        setLoading(true);
+      }
       // Buscar TODOS os pedidos para garantir sincronização
       // Primeiro busca rascunhos
       // Usar silent404 para não quebrar se endpoints não existirem ainda
@@ -83,18 +85,28 @@ export function Kitchen({ token }: KitchenProps) {
       });
 
       setOrders(sortedOrders);
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      }
     } catch (err) {
       console.error("Erro ao buscar pedidos:", err);
       setOrders([]);
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      }
     }
   };
 
+  // Carregamento inicial: carregar pedidos quando a página é aberta
+  useEffect(() => {
+    fetchOrders(true); // Mostrar loading apenas no carregamento inicial
+  }, [token]);
+
   // Carregamento reativo: escuta eventos de mudanças (novo pedido, mesa aberta, etc)
+  // Atualização silenciosa (sem mostrar loading)
   useEffect(() => {
     const unsubscribe = orderEvents.on("refresh:orders", () => {
-      fetchOrders();
+      fetchOrders(false); // Atualização silenciosa
     });
 
     return () => {
@@ -114,8 +126,10 @@ export function Kitchen({ token }: KitchenProps) {
   const handleMarkAsViewed = async (orderId: string) => {
     const result = await markOrderAsViewedAction(orderId);
     if (result.success) {
-      await fetchOrders();
-      router.refresh();
+      // Notificar componentes sobre pedido visualizado (atualização silenciosa)
+      orderEventHelpers.notifyOrderViewed();
+      // Atualizar silenciosamente (sem mostrar loading)
+      await fetchOrders(false);
     }
   };
 
@@ -230,8 +244,13 @@ export function Kitchen({ token }: KitchenProps) {
                 
                 alert(`Limpeza concluída!\n${deleted} pedido(s) deletado(s) da cozinha.${errors > 0 ? `\n${errors} erro(s) ao deletar.` : ""}`);
                 
-                await fetchOrders();
-                router.refresh();
+                // Notificar componentes sobre pedidos deletados (atualização silenciosa)
+                if (deleted > 0) {
+                  orderEventHelpers.notifyOrderDeleted();
+                }
+                
+                // Atualizar silenciosamente (sem mostrar loading)
+                await fetchOrders(false);
               } catch (err) {
                 console.error("Erro ao limpar pedidos:", err);
                 alert("Erro ao limpar pedidos. Verifique o console para mais detalhes.");
@@ -445,8 +464,8 @@ export function Kitchen({ token }: KitchenProps) {
         orderId={selectedOrder}
         onClose={async () => {
           setSelectedOrder(null);
-          await fetchOrders();
-          router.refresh();
+          // Atualizar silenciosamente (sem mostrar loading) ao fechar o modal
+          await fetchOrders(false);
         }}
         token={token}
         isKitchen={true}
