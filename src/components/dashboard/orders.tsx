@@ -66,10 +66,21 @@ export function Orders({ token }: OrdersProps) {
       const nonDraftOrders = (nonDraftResponse && Array.isArray(nonDraftResponse)) ? nonDraftResponse : [];
       
       // Combinar todas as respostas e remover duplicatas
-      const allOrders = [...draftOrders, ...nonDraftOrders];
-      const uniqueOrders = Array.from(
-        new Map(allOrders.map((order) => [order.id, order])).values()
-      );
+      // Priorizar pedidos com itens quando há duplicatas
+      // Isso garante que pedidos enviados para produção mantenham os itens e o total correto
+      const orderMap = new Map<string, Order>();
+      
+      // Adicionar todos os pedidos, priorizando versões com itens
+      [...draftOrders, ...nonDraftOrders].forEach((order) => {
+        const existing = orderMap.get(order.id);
+        
+        // Se não existe ou se a nova versão tem itens e a existente não, atualizar
+        if (!existing || (order.items && order.items.length > 0 && (!existing.items || existing.items.length === 0))) {
+          orderMap.set(order.id, order);
+        }
+      });
+      
+      const uniqueOrders = Array.from(orderMap.values());
 
       // Mostrar mesas abertas (pedidos que ainda não foram finalizados)
       // Isso inclui rascunhos (mesas abertas) e pedidos em produção

@@ -242,6 +242,37 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
     }
   }, [orderId, token]);
 
+  // Agrupa itens do mesmo produto e soma as quantidades
+  const groupItemsByProduct = () => {
+    if (!order?.items) return [];
+    
+    const grouped = new Map<string, {
+      product: typeof order.items[0]['product'];
+      totalAmount: number;
+      itemIds: string[];
+      firstItem: typeof order.items[0];
+    }>();
+    
+    order.items.forEach((item) => {
+      const productId = item.product.id;
+      const existing = grouped.get(productId);
+      
+      if (existing) {
+        existing.totalAmount += item.amount;
+        existing.itemIds.push(item.id);
+      } else {
+        grouped.set(productId, {
+          product: item.product,
+          totalAmount: item.amount,
+          itemIds: [item.id],
+          firstItem: item,
+        });
+      }
+    });
+    
+    return Array.from(grouped.values());
+  };
+
   // Calcula o total do pedido
   const calculateTotal = () => {
     if (!order?.items) return 0;
@@ -269,18 +300,20 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
         ? `Mesa ${order.table || ""}${order.name ? ` - ${order.name}` : ""}`
         : order.name || "Pedido no Balcão";
 
-      const response = await apiClient<Order>(`/api/order/send`, {
-        method: "PUT",
-        token: token,
-        body: JSON.stringify({
-          order_id: orderId,
-          name: orderName,
-        }),
-      });
+      // Usar o adapter que já faz a serialização corretamente
+      const api = getApiAdapter();
+      const response = await api.put<Order>(`/api/order/send`, {
+        order_id: orderId,
+        name: orderName,
+      }, { token });
 
       // Atualizar o pedido diretamente com a resposta da API
-      if (response) {
+      if (response && response.id === orderId) {
         setOrder(response);
+      } else if (response) {
+        console.warn(`Ignorando resposta para pedido ${response.id}, esperado ${orderId}`);
+        // Se a resposta não corresponde, recarregar do servidor
+        await fetchOrder(false);
       } else {
         // Se a resposta não vier com os dados completos, recarregar do servidor
         await fetchOrder(false);
@@ -408,6 +441,7 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
       }
       
       setShowAddItem(false);
+      setSelectedCategory(null);
       setSelectedProduct(null);
       setQuantity(1);
       
@@ -520,8 +554,8 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
 
   return (
     <Dialog open={orderId !== null} onOpenChange={() => onClose()}>
-      <DialogContent className="p-6 bg-app-card text-black max-w-2xl">
-        <DialogHeader>
+      <DialogContent className="p-0 bg-app-card text-black max-w-2xl max-h-[90vh] flex flex-col">
+        <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0">
           <DialogTitle className="text-2xl font-normal tracking-tight">
             Detalhe do pedido
           </DialogTitle>
@@ -531,11 +565,11 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
         </DialogHeader>
 
         {loading ? (
-          <div className="flex items-center justify-center py-8">
+          <div className="flex items-center justify-center py-8 px-6">
             <p className="text-gray-600">Carregando...</p>
           </div>
         ) : order ? (
-          <div className="space-y-6">
+          <div className="px-6 pb-4 overflow-y-auto flex-1 space-y-6">
             {/* Informações do pedido */}
             <div className="grid grid-cols-1 gap-4">
               <div>
@@ -593,16 +627,22 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
               </div>
               <div className="space-y-3">
                 {order.items && order.items.length > 0 ? (
-                  order.items.map((item) => {
-                    const subtotal = item.product.price * item.amount;
-                    const isSelected = selectedItems.has(item.id);
+                  groupItemsByProduct().map((groupedItem) => {
+                    const subtotal = groupedItem.product.price * groupedItem.totalAmount;
+                    // Verificar se todos os itens do grupo estão selecionados
+                    const allSelected = groupedItem.itemIds.every(id => selectedItems.has(id));
+                    const someSelected = groupedItem.itemIds.some(id => selectedItems.has(id));
+                    const isSelected = allSelected;
+                    
                     return (
                       <div
-                        key={item.id}
+                        key={groupedItem.product.id}
                         className={cn(
                           "bg-white rounded-lg p-4 border transition-colors",
                           isSelected && !isKitchen && order.draft
                             ? "border-green-500 bg-green-50/30"
+                            : someSelected && !isKitchen && order.draft
+                            ? "border-yellow-500 bg-yellow-50/30"
                             : "border-app-border"
                         )}
                       >
@@ -614,9 +654,11 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
                               onChange={(e) => {
                                 const newSelected = new Set(selectedItems);
                                 if (e.target.checked) {
-                                  newSelected.add(item.id);
+                                  // Selecionar todos os itens do grupo
+                                  groupedItem.itemIds.forEach(id => newSelected.add(id));
                                 } else {
-                                  newSelected.delete(item.id);
+                                  // Deselecionar todos os itens do grupo
+                                  groupedItem.itemIds.forEach(id => newSelected.delete(id));
                                 }
                                 setSelectedItems(newSelected);
                               }}
@@ -625,22 +667,22 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
                           )}
                           <div className="flex-1">
                             <h4 className="font-normal text-base mb-1">
-                              {item.product.name}
+                              {groupedItem.product.name}
                             </h4>
                             {!isKitchen && (
                               <>
                                 <p className="text-sm text-gray-600">
-                                  {item.product.description}
+                                  {groupedItem.product.description}
                                 </p>
                                 <p className="text-sm text-gray-600 mt-2">
-                                  {formatPrice(item.product.price)} x {item.amount}
+                                  {formatPrice(groupedItem.product.price)} x {groupedItem.totalAmount}
                                 </p>
                               </>
                             )}
                           </div>
                           <div className="text-right ml-4">
                             <p className="text-sm text-gray-600 mb-1">
-                              Quantidade: {item.amount}
+                              Quantidade: {groupedItem.totalAmount}
                             </p>
                             {!isKitchen && (
                               <p className="font-normal text-lg">
@@ -683,7 +725,7 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
         ) : null}
 
         {order && !isKitchen && (
-          <DialogFooter className="flex gap-2 sm:gap-2">
+          <DialogFooter className="px-6 pb-6 pt-4 flex-shrink-0 flex gap-2 sm:gap-2 border-t border-app-border">
             {order.draft ? (
               <>
                 <Button
@@ -766,7 +808,15 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
               <Label htmlFor="category" className="mb-2">
                 Categoria
               </Label>
-              <Select value={selectedCategory || "all"} onValueChange={(value) => setSelectedCategory(value === "all" ? null : value)}>
+              <Select 
+                value={selectedCategory || "all"} 
+                onValueChange={(value: string) => {
+                  const newCategory = value === "all" ? null : value;
+                  setSelectedCategory(newCategory);
+                  // Limpar produto selecionado quando mudar categoria
+                  setSelectedProduct(null);
+                }}
+              >
                 <SelectTrigger className="border-app-border bg-white text-black">
                   <SelectValue placeholder="Selecione uma categoria" />
                 </SelectTrigger>
@@ -801,7 +851,21 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
                 </SelectTrigger>
                 <SelectContent className="bg-app-card border-app-border max-h-60">
                   {products
-                    .filter((p) => !p.disabled && (selectedCategory === null || p.category_id === selectedCategory))
+                    .filter((p) => {
+                      // Filtrar produtos desabilitados
+                      if (p.disabled) return false;
+                      
+                      // Se nenhuma categoria selecionada, mostrar todos
+                      if (selectedCategory === null || selectedCategory === "") {
+                        return true;
+                      }
+                      
+                      // Comparar category_id (garantir que ambos sejam strings para comparação)
+                      const productCategoryId = String(p.category_id || "");
+                      const selectedCategoryId = String(selectedCategory || "");
+                      
+                      return productCategoryId === selectedCategoryId;
+                    })
                     .map((product) => (
                       <SelectItem
                         key={product.id}
@@ -854,6 +918,7 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
                 variant="outline"
                 onClick={() => {
                   setShowAddItem(false);
+                  setSelectedCategory(null);
                   setSelectedProduct(null);
                   setQuantity(1);
                 }}
