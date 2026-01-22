@@ -430,13 +430,13 @@ export function Orders({ token }: OrdersProps) {
                     }) : [];
 
                     return (
-                      <Card
+                      <div
                         key={`MESA_${tableNumber}`}
                         className={cn(
-                          "bg-app-card text-black tech-shadow tech-hover transition-all duration-300 aspect-square",
+                          "relative aspect-square cursor-pointer transition-all duration-300",
                           isOccupied 
-                            ? "border-2 border-orange-500 shadow-md shadow-orange-500/20 cursor-pointer"
-                            : "border-2 border-gray-200 cursor-pointer"
+                            ? "shadow-md"
+                            : ""
                         )}
                         onClick={() => {
                           if (isOccupied && group && group.orders.length > 0) {
@@ -450,49 +450,66 @@ export function Orders({ token }: OrdersProps) {
                           }
                         }}
                       >
-                        <div className="p-2.5 h-full flex flex-col">
-                          <div className="flex items-start justify-between gap-1 mb-auto">
-                            <CardTitle className="text-xs font-normal tracking-tight">
-                              Mesa {tableNumber.toString().padStart(2, '0')}
-                            </CardTitle>
-                            {isOccupied && group && (
-                              <div className="flex flex-col items-end gap-0.5">
-                                {group.hasNewOrders && (
-                                  <Badge
-                                    variant="destructive"
-                                    className="text-[9px] px-1 py-0 select-none animate-pulse h-3.5"
-                                  >
-                                    Novo
-                                  </Badge>
+                        {/* Gradiente de borda para mesas ocupadas */}
+                        {isOccupied ? (
+                          <div className="absolute inset-0 bg-gradient-to-br from-cyan-400 via-blue-500 to-green-400 rounded-lg p-[2px]">
+                            <Card className="bg-app-card text-black tech-shadow tech-hover h-full w-full p-2.5 flex flex-col">
+                              <div className="flex items-start justify-between gap-1 mb-auto">
+                                <CardTitle className="text-xs font-normal tracking-tight">
+                                  Mesa {tableNumber.toString().padStart(2, '0')}
+                                </CardTitle>
+                                {group && (
+                                  <div className="flex flex-col items-end gap-0.5">
+                                    {group.hasNewOrders && (
+                                      <Badge
+                                        variant="destructive"
+                                        className="text-[9px] px-1 py-0 select-none animate-pulse h-3.5"
+                                      >
+                                        Novo
+                                      </Badge>
+                                    )}
+                                    <Badge variant="secondary" className="text-[9px] px-1 py-0 select-none h-3.5">
+                                      {group.orders.length}
+                                    </Badge>
+                                  </div>
                                 )}
-                                <Badge variant="secondary" className="text-[9px] px-1 py-0 select-none h-3.5">
-                                  {group.orders.length}
-                                </Badge>
                               </div>
-                            )}
-                          </div>
-                          
-                          <div className="mt-auto space-y-1">
-                            {isOccupied && group ? (
-                              <>
-                                <div className="flex items-center justify-between">
-                                  <span className="text-[10px] text-gray-500">Total</span>
-                                  <span className="text-xs font-normal text-brand-primary">
-                                    {formatPrice(group.total)}
-                                  </span>
-                                </div>
-                                {sortedGroupOrders.length > 0 && sortedGroupOrders[0].items && sortedGroupOrders[0].items.length > 0 && (
-                                  <p className="text-[9px] text-gray-600 truncate">
-                                    {sortedGroupOrders[0].items.length} itens
-                                  </p>
+                              
+                              <div className="mt-auto space-y-1">
+                                {group ? (
+                                  <>
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-[10px] text-gray-500">Total</span>
+                                      <span className="text-xs font-normal text-brand-primary">
+                                        {formatPrice(group.total)}
+                                      </span>
+                                    </div>
+                                    {sortedGroupOrders.length > 0 && sortedGroupOrders[0].items && sortedGroupOrders[0].items.length > 0 && (
+                                      <p className="text-[9px] text-gray-600 truncate">
+                                        {sortedGroupOrders[0].items.length} itens
+                                      </p>
+                                    )}
+                                  </>
+                                ) : (
+                                  <p className="text-[10px] text-gray-400 text-center">Livre</p>
                                 )}
-                              </>
-                            ) : (
-                              <p className="text-[10px] text-gray-400 text-center">Livre</p>
-                            )}
+                              </div>
+                            </Card>
                           </div>
-                        </div>
-                      </Card>
+                        ) : (
+                          <Card className="bg-app-card text-black tech-shadow tech-hover h-full w-full border-2 border-gray-200 p-2.5 flex flex-col">
+                            <div className="flex items-start justify-between gap-1 mb-auto">
+                              <CardTitle className="text-xs font-normal tracking-tight">
+                                Mesa {tableNumber.toString().padStart(2, '0')}
+                              </CardTitle>
+                            </div>
+                            
+                            <div className="mt-auto space-y-1">
+                              <p className="text-[10px] text-gray-400 text-center">Livre</p>
+                            </div>
+                          </Card>
+                        )}
+                      </div>
                     );
                   })}
                 </div>
