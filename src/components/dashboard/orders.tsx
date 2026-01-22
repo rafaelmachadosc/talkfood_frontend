@@ -313,8 +313,7 @@ export function Orders({ token }: OrdersProps) {
           {/* Coluna PEDIDOS (Balcão) */}
           <div className="pr-4 lg:pr-6 border-r-0 lg:border-r border-app-border">
             <div className="mb-6 pb-4 border-b border-app-border">
-              <h2 className="text-xl font-normal text-black mb-1">Pedidos</h2>
-              <p className="text-sm text-gray-600">Pedidos do balcão</p>
+              <h2 className="text-xl font-normal text-black mb-1">Balcão</h2>
             </div>
             {(() => {
               const balcaoOrders = orders.filter((o) => o.orderType === "BALCAO");
@@ -398,11 +397,10 @@ export function Orders({ token }: OrdersProps) {
             })()}
           </div>
 
-          {/* Coluna MESAS (QR Code) */}
+          {/* Coluna MESAS*/}
           <div className="pl-4 lg:pl-6">
             <div className="mb-6 pb-4 border-b border-app-border">
               <h2 className="text-xl font-normal text-black mb-1">Mesas</h2>
-              <p className="text-sm text-gray-600">Pedidos das mesas (QR Code)</p>
             </div>
             {(() => {
               const mesaOrders = orders.filter((o) => o.orderType === "MESA");
