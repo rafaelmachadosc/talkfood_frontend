@@ -217,7 +217,7 @@ export function Orders({ token }: OrdersProps) {
           <OrderForm />
           <Button
             className="bg-brand-primary text-black hover:bg-brand-primary"
-            onClick={fetchOrders}
+            onClick={() => fetchOrders(true)}
           >
             <RefreshCcw className="w-5 h-5 icon-3d" />
           </Button>
