@@ -68,14 +68,38 @@ export async function updateProductAction(data: {
       return { success: false, error: "Erro ao atualizar produto" };
     }
 
+    if (!data.product_id || data.product_id.trim() === "") {
+      return { success: false, error: "ID do produto é obrigatório" };
+    }
+
+    if (!data.category_id || data.category_id.trim() === "") {
+      return { success: false, error: "Categoria é obrigatória" };
+    }
+
+    if (process.env.NODE_ENV === "development") {
+      console.log("[updateProductAction] Payload:", JSON.stringify(data, null, 2));
+    }
+
     await api.put("/api/product", data, { token });
 
     revalidatePath("/dashboard/products");
 
     return { success: true, error: "" };
   } catch (error) {
+    console.error("[updateProductAction] Erro ao atualizar produto:", error);
+    
     if (error instanceof Error) {
-      return { success: false, error: error.message };
+      let errorMessage = error.message;
+      
+      if (errorMessage.includes("não encontrado") || errorMessage.includes("not found") || errorMessage.includes("404")) {
+        errorMessage = "Produto não encontrado. Verifique se o produto ainda existe e tente novamente.";
+      } else if (errorMessage.includes("Categoria não encontrada") || errorMessage.includes("category")) {
+        errorMessage = "Categoria não encontrada. Verifique se a categoria existe e tente novamente.";
+      } else if (errorMessage.includes("400") || errorMessage.includes("Bad Request")) {
+        errorMessage = `Erro ao atualizar produto: ${errorMessage}. Verifique se todos os campos foram preenchidos corretamente.`;
+      }
+      
+      return { success: false, error: errorMessage };
     }
 
     return { success: false, error: "Erro ao atualizar produto" };

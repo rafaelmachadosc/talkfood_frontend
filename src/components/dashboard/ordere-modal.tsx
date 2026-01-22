@@ -199,12 +199,7 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
       return;
     }
 
-    if (order.draft && order.items && order.items.length > 0) {
-      // Inicializar com todos os itens selecionados
-      const allItemIds = new Set(order.items.map((item) => item.id));
-      setSelectedItems(allItemIds);
-    } else if (!order.draft) {
-      // Se o pedido foi enviado para produção, limpar seleção
+    if (!order.draft) {
       setSelectedItems(new Set());
     }
   }, [order, orderId]);
@@ -505,28 +500,29 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
       return;
     }
 
-    // Usar total selecionado se houver seleção parcial, senão usar total completo
     const selectedTotal = order.draft && selectedItems.size > 0 && selectedItems.size < (order.items?.length || 0)
       ? calculateSelectedTotal()
       : calculateTotal();
     
-    // Converter valor recebido formatado (R$ 15,00) para reais
+    const total = selectedTotal / 100;
     const received = paymentMethod === "DINHEIRO" 
       ? convertBRLToReais(receivedAmount)
-      : selectedTotal / 100; // selectedTotal já está em centavos
-    const total = selectedTotal / 100; // Converter de centavos para reais
+      : total;
     
-    if (paymentMethod === "DINHEIRO" && received < total) {
+    const isPartial = order.draft && (selectedItems.size > 0 && selectedItems.size < (order.items?.length || 0) || received < total);
+    const itemIds = order.draft && selectedItems.size > 0 ? Array.from(selectedItems) : undefined;
+    
+    if (paymentMethod === "DINHEIRO" && received < total && !isPartial) {
       alert("Valor recebido é menor que o total do pedido");
       return;
     }
 
     setReceiving(true);
     try {
-      const result = await receiveOrderAction(orderId, paymentMethod, received);
+      const result = await receiveOrderAction(orderId, paymentMethod, received, isPartial, itemIds);
 
-      if (!result.success) {
-        const errorMsg = result.error || "Erro ao receber pedido";
+      if (!result || !result.success) {
+        const errorMsg = result?.error || "Erro ao receber pedido";
         console.error("Erro ao receber pedido:", errorMsg);
         
         // Atualizar o pedido para verificar se mudou de status
@@ -662,22 +658,23 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
                       >
                         <div className="flex justify-between items-start gap-3">
                           {!isKitchen && order.draft && (
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              onChange={(e) => {
-                                const newSelected = new Set(selectedItems);
-                                if (e.target.checked) {
-                                  // Selecionar todos os itens do grupo
-                                  groupedItem.itemIds.forEach(id => newSelected.add(id));
-                                } else {
-                                  // Deselecionar todos os itens do grupo
-                                  groupedItem.itemIds.forEach(id => newSelected.delete(id));
-                                }
-                                setSelectedItems(newSelected);
-                              }}
-                              className="w-5 h-5 mt-1 text-green-500 border-app-border rounded cursor-pointer focus:ring-green-500"
-                            />
+                            <label className="cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={(e) => {
+                                  const newSelected = new Set(selectedItems);
+                                  if (e.target.checked) {
+                                    groupedItem.itemIds.forEach(id => newSelected.add(id));
+                                  } else {
+                                    groupedItem.itemIds.forEach(id => newSelected.delete(id));
+                                  }
+                                  setSelectedItems(newSelected);
+                                }}
+                                className="w-5 h-5 mt-1 text-green-500 border-app-border rounded cursor-pointer focus:ring-green-500"
+                                aria-label={`Selecionar ${groupedItem.product.name}`}
+                              />
+                            </label>
                           )}
                           <div className="flex-1">
                             <h4 className="font-normal text-base mb-1">
@@ -1045,7 +1042,6 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
                   className="border-app-border bg-white text-black"
                   value={receivedAmount}
                   onChange={(e) => {
-                    // Aplicar formatação automática como no campo de preço
                     const formatted = formatToBrl(e.target.value);
                     setReceivedAmount(formatted);
                   }}
@@ -1056,10 +1052,19 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
                   </p>
                 )}
                 {receivedAmount && calculateChange() < 0 && (
-                  <p className="text-sm text-red-600 mt-2">
-                    Valor insuficiente. Faltam: {formatPrice(Math.abs(calculateChange()) * 100)}
+                  <p className="text-sm text-orange-600 mt-2">
+                    Recebimento parcial. Faltam: {formatPrice(Math.abs(calculateChange()) * 100)}
                   </p>
                 )}
+              </div>
+            )}
+            {paymentMethod !== "DINHEIRO" && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-sm text-blue-700">
+                  {order?.draft && selectedItems.size > 0 && selectedItems.size < (order.items?.length || 0)
+                    ? "Este será um recebimento parcial dos itens selecionados."
+                    : "O valor total será recebido via " + (paymentMethod === "PIX" ? "PIX" : paymentMethod === "CARTAO_CREDITO" ? "Cartão de Crédito" : "Cartão de Débito") + "."}
+                </p>
               </div>
             )}
 
@@ -1077,10 +1082,10 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
               </Button>
               <Button
                 onClick={handleReceiveOrder}
-                disabled={receiving || (paymentMethod === "DINHEIRO" && (!receivedAmount || calculateChange() < 0))}
+                disabled={receiving || (paymentMethod === "DINHEIRO" && !receivedAmount)}
                 className="flex-1 bg-green-500 hover:bg-green-600 text-white tech-shadow tech-hover font-normal"
               >
-                {receiving ? "Recebendo..." : "Confirmar Recebimento"}
+                {receiving ? "Recebendo..." : order?.draft && selectedItems.size > 0 && selectedItems.size < (order.items?.length || 0) ? "Receber Parcial" : "Confirmar Recebimento"}
               </Button>
             </div>
           </div>

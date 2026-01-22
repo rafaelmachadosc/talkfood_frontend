@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiClient } from "@/lib/api";
 import { formatPrice } from "@/lib/format";
-import { TrendingUp, TrendingDown, DollarSign, ShoppingCart, Users, Package } from "lucide-react";
+import { TrendingUp, TrendingDown, DollarSign, ShoppingCart, Users, Package, CreditCard, Wallet } from "lucide-react";
 
 interface DashboardAnalyticsProps {
   token: string;
@@ -19,6 +19,13 @@ interface SalesMetrics {
   ordersMonth: number;
   averageTicket: number;
   growthRate: number;
+  // Valores por método de pagamento (em centavos)
+  paymentMethods?: {
+    DINHEIRO: number;
+    PIX: number;
+    CARTAO_CREDITO: number;
+    CARTAO_DEBITO: number;
+  };
 }
 
 interface DailySales {
@@ -60,6 +67,12 @@ export function DashboardAnalytics({ token }: DashboardAnalyticsProps) {
             ordersMonth: 0,
             averageTicket: 0,
             growthRate: 0,
+            paymentMethods: {
+              DINHEIRO: 0,
+              PIX: 0,
+              CARTAO_CREDITO: 0,
+              CARTAO_DEBITO: 0,
+            },
           });
         } else {
           setMetrics(metricsData);
@@ -79,6 +92,12 @@ export function DashboardAnalytics({ token }: DashboardAnalyticsProps) {
           ordersMonth: 0,
           averageTicket: 0,
           growthRate: 0,
+          paymentMethods: {
+            DINHEIRO: 0,
+            PIX: 0,
+            CARTAO_CREDITO: 0,
+            CARTAO_DEBITO: 0,
+          },
         });
         setDailySales([]);
         setLoading(false);
@@ -114,7 +133,7 @@ export function DashboardAnalytics({ token }: DashboardAnalyticsProps) {
         <p className="text-sm sm:text-base mt-1">Métricas e gráficos de vendas</p>
       </div>
 
-      {/* Cards de Métricas */}
+      {/* Cards de Métricas Gerais */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="bg-app-card border-app-border tech-shadow">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -169,6 +188,61 @@ export function DashboardAnalytics({ token }: DashboardAnalyticsProps) {
                 {metrics.growthRate.toFixed(1)}%
               </p>
             </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Cards de Métodos de Pagamento */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Card className="bg-app-card border-app-border tech-shadow">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-normal text-gray-600">Dinheiro</CardTitle>
+            <Wallet className="w-4 h-4 text-brand-primary icon-3d" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-normal text-black">
+              {formatPrice(metrics.paymentMethods?.DINHEIRO || 0)}
+            </div>
+            <p className="text-xs text-gray-600 mt-1">Total recebido</p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-app-card border-app-border tech-shadow">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-normal text-gray-600">PIX</CardTitle>
+            <DollarSign className="w-4 h-4 text-brand-primary icon-3d" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-normal text-black">
+              {formatPrice(metrics.paymentMethods?.PIX || 0)}
+            </div>
+            <p className="text-xs text-gray-600 mt-1">Total recebido</p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-app-card border-app-border tech-shadow">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-normal text-gray-600">Cartão de Crédito</CardTitle>
+            <CreditCard className="w-4 h-4 text-brand-primary icon-3d" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-normal text-black">
+              {formatPrice(metrics.paymentMethods?.CARTAO_CREDITO || 0)}
+            </div>
+            <p className="text-xs text-gray-600 mt-1">Total recebido</p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-app-card border-app-border tech-shadow">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-normal text-gray-600">Cartão de Débito</CardTitle>
+            <CreditCard className="w-4 h-4 text-brand-primary icon-3d" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-normal text-black">
+              {formatPrice(metrics.paymentMethods?.CARTAO_DEBITO || 0)}
+            </div>
+            <p className="text-xs text-gray-600 mt-1">Total recebido</p>
           </CardContent>
         </Card>
       </div>

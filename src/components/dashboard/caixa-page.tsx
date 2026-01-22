@@ -214,12 +214,18 @@ export function CaixaPage({ token }: CaixaPageProps) {
   };
 
   const calculateChange = () => {
-    const received = parseCurrency(receivedAmountRaw);
-    const total = caixaStatus?.currentAmount || 0;
-    const change = received - total / 100; // Converter de centavos para reais
-    if (change >= 0) {
-      const changeReais = Math.round(change);
-      setChangeAmount(formatCurrencyDisplay(changeReais.toString()));
+    // receivedAmountRaw está em centavos (apenas dígitos)
+    const receivedInCents = parseCurrency(receivedAmountRaw);
+    const totalInCents = caixaStatus?.currentAmount || 0;
+    const changeInCents = receivedInCents - totalInCents;
+    
+    if (changeInCents >= 0) {
+      // Converter centavos para reais e formatar
+      const changeInReais = changeInCents / 100;
+      setChangeAmount(changeInReais.toLocaleString("pt-BR", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }));
     } else {
       setChangeAmount("0,00");
     }
@@ -314,7 +320,7 @@ export function CaixaPage({ token }: CaixaPageProps) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-normal text-black">
-              {formatPrice((caixaStatus?.initialAmount || 0) / 100)}
+              {formatPrice(caixaStatus?.initialAmount || 0)}
             </div>
           </CardContent>
         </Card>
@@ -326,7 +332,7 @@ export function CaixaPage({ token }: CaixaPageProps) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-normal text-black">
-              {formatPrice((caixaStatus?.currentAmount || 0) / 100)}
+              {formatPrice(caixaStatus?.currentAmount || 0)}
             </div>
           </CardContent>
         </Card>
@@ -338,7 +344,7 @@ export function CaixaPage({ token }: CaixaPageProps) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-normal text-black">
-              {formatPrice((caixaStatus?.totalSales || 0) / 100)}
+              {formatPrice(caixaStatus?.totalSales || 0)}
             </div>
             <p className="text-xs text-gray-600 mt-1">
               {caixaStatus?.totalOrders || 0} pedidos
@@ -408,19 +414,19 @@ export function CaixaPage({ token }: CaixaPageProps) {
               <div className="flex justify-between items-center mb-2">
                 <span className="text-sm text-gray-600">Valor Inicial:</span>
                 <span className="font-normal text-black">
-                  {formatPrice((caixaStatus?.initialAmount || 0) / 100)}
+                  {formatPrice(caixaStatus?.initialAmount || 0)}
                 </span>
               </div>
               <div className="flex justify-between items-center mb-2">
                 <span className="text-sm text-gray-600">Vendas do Dia:</span>
                 <span className="font-normal text-black">
-                  {formatPrice((caixaStatus?.totalSales || 0) / 100)}
+                  {formatPrice(caixaStatus?.totalSales || 0)}
                 </span>
               </div>
               <div className="flex justify-between items-center pt-2 border-t border-app-border">
                 <span className="text-base font-normal">Total Esperado:</span>
                 <span className="text-lg font-normal text-brand-primary">
-                  {formatPrice((caixaStatus?.currentAmount || 0) / 100)}
+                  {formatPrice(caixaStatus?.currentAmount || 0)}
                 </span>
               </div>
             </div>
@@ -463,7 +469,7 @@ export function CaixaPage({ token }: CaixaPageProps) {
                 id="total"
                 type="text"
                 className="border-app-border bg-white text-black"
-                value={formatPrice((caixaStatus?.currentAmount || 0) / 100)}
+                value={formatPrice(caixaStatus?.currentAmount || 0)}
                 disabled
               />
             </div>

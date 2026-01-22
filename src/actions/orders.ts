@@ -138,7 +138,9 @@ export async function finishOrderAction(orderId: string) {
 export async function receiveOrderAction(
   orderId: string,
   paymentMethod?: string,
-  receivedAmount?: number
+  receivedAmount?: number,
+  isPartial?: boolean,
+  itemIds?: string[]
 ) {
   if (!orderId) {
     return { success: false, error: "Falha ao receber o pedido" };
@@ -169,27 +171,41 @@ export async function receiveOrderAction(
     // Calcular o total do pedido
     const total = order.items?.reduce((sum, item) => sum + item.product.price * item.amount, 0) || 0;
 
-    // Registrar o recebimento no caixa (endpoint que precisa ser implementado no backend)
-    // Por enquanto, vamos apenas finalizar o pedido e atualizar o caixa
+    const amountToReceive = receivedAmount ? Math.round(receivedAmount * 100) : total;
+    const isPartialPayment = isPartial || (itemIds && itemIds.length > 0 && itemIds.length < (order.items?.length || 0));
+
     try {
-      await api.post("/api/caixa/receive", {
-        order_id: orderId,
-        amount: total,
-        payment_method: paymentMethod || "DINHEIRO",
-        received_amount: receivedAmount ? Math.round(receivedAmount * 100) : undefined, // Converter para centavos
-      }, { 
-        token,
-        silent404: true, // Não gerar erro se endpoint não existir ainda
-      });
+      if (isPartialPayment) {
+        await api.post("/api/order/receive-partial", {
+          order_id: orderId,
+          item_ids: itemIds || [],
+          payment_method: paymentMethod || "DINHEIRO",
+          amount: amountToReceive,
+          received_amount: receivedAmount ? Math.round(receivedAmount * 100) : amountToReceive,
+          is_partial: true,
+        }, { 
+          token,
+          silent404: true,
+        });
+      } else {
+        await api.post("/api/caixa/receive", {
+          order_id: orderId,
+          amount: total,
+          payment_method: paymentMethod || "DINHEIRO",
+          received_amount: receivedAmount ? Math.round(receivedAmount * 100) : undefined,
+        }, { 
+          token,
+          silent404: true,
+        });
+      }
     } catch (err) {
-      // Se o endpoint não existir, continuar mesmo assim
-      console.log("Endpoint /caixa/receive não disponível ainda");
+      console.log("Endpoint de recebimento não disponível ainda");
     }
 
-    // Finalizar o pedido
-    try {
-      await api.put("/api/order/finish", { order_id: orderId }, { token });
-    } catch (finishErr) {
+    if (!isPartialPayment) {
+      try {
+        await api.put("/api/order/finish", { order_id: orderId }, { token });
+      } catch (finishErr) {
       console.error("Erro ao finalizar pedido:", finishErr);
       let errorMessage = "Erro ao finalizar o pedido";
       if (finishErr instanceof Error) {
