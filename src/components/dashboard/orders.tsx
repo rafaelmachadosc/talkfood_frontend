@@ -452,7 +452,7 @@ export function Orders({ token }: OrdersProps) {
                       >
                         {/* Gradiente de borda para mesas ocupadas */}
                         {isOccupied ? (
-                          <div className="absolute inset-0 bg-gradient-to-br from-cyan-400 via-blue-500 to-green-400 rounded-lg p-[2px]">
+                          <div className="absolute inset-0 bg-gradient-to-br from-cyan-400 via-cyan-300 to-cyan-500 rounded-lg p-[2px]">
                             <Card className="bg-app-card text-black tech-shadow tech-hover h-full w-full p-2.5 flex flex-col">
                               <div className="flex items-start justify-between gap-1 mb-auto">
                                 <CardTitle className="text-xs font-normal tracking-tight">
