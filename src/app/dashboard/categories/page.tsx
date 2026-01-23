@@ -9,9 +9,19 @@ export default async function Categories() {
   const token = await getToken();
   let categories: Category[] = [];
   try {
-    categories = await apiClient<Category[]>("/api/category", {
+    const primary = await apiClient<Category[]>("/api/category", {
       token: token!,
-    }) || [];
+    });
+    const fallback = !primary || primary.length === 0
+      ? await apiClient<Category[]>("/api/categories", { token: token! })
+      : primary;
+    categories = (fallback || []).map((category: any) => ({
+      id: category.id ?? category.Id,
+      name: category.name ?? category.Name,
+      createdAt: category.createdAt ?? category.CreatedAt,
+    }));
+    categories = categories.filter((category) => category.id && category.name);
+    categories.sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
   } catch (error) {
     console.error("Erro ao buscar categorias:", error);
     categories = [];

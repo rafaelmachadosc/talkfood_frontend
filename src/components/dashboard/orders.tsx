@@ -38,32 +38,30 @@ export function Orders({ token }: OrdersProps) {
   const [orders, setOrders] = useState<Order[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<null | string>(null);
 
+  const safeFetchOrders = async (endpoint: string) => {
+    try {
+      const response = await apiClient<Order[]>(endpoint, {
+        method: "GET",
+        cache: "no-store",
+        token: token,
+        silent404: true,
+      });
+      return Array.isArray(response) ? response : [];
+    } catch {
+      return [];
+    }
+  };
+
   const fetchOrders = async (showLoading = true) => {
     try {
       if (showLoading) {
         setLoading(true);
       }
-      // Buscar todos os pedidos (incluindo rascunhos) para mostrar mesas abertas
-      // Mesas criadas manualmente podem começar como rascunho
-      // Usar silent404 para não quebrar se endpoints não existirem ainda
-      const response = await apiClient<Order[]>("/api/orders?draft=true", {
-        method: "GET",
-        cache: "no-store",
-        token: token,
-        silent404: true, // Silenciar 404 se endpoint não existir
-      });
-
-      // Buscar também pedidos não-rascunhos para garantir sincronização completa
-      const nonDraftResponse = await apiClient<Order[]>("/api/orders?draft=false", {
-        method: "GET",
-        cache: "no-store",
-        token: token,
-        silent404: true, // Silenciar 404 se endpoint não existir
-      });
-
-      // Se ambos retornaram null (404), tratar como array vazio ao invés de erro
-      const draftOrders = (response && Array.isArray(response)) ? response : [];
-      const nonDraftOrders = (nonDraftResponse && Array.isArray(nonDraftResponse)) ? nonDraftResponse : [];
+      const draftOrders = await safeFetchOrders("/api/orders?draft=true");
+      const nonDraftOrders = await safeFetchOrders("/api/orders?draft=false");
+      const fallbackOrders = draftOrders.length === 0 && nonDraftOrders.length === 0
+        ? await safeFetchOrders("/api/orders")
+        : [];
       
       // Combinar todas as respostas e remover duplicatas
       // Priorizar pedidos com itens quando há duplicatas
@@ -71,7 +69,7 @@ export function Orders({ token }: OrdersProps) {
       const orderMap = new Map<string, Order>();
       
       // Adicionar todos os pedidos, priorizando versões com itens
-      [...draftOrders, ...nonDraftOrders].forEach((order) => {
+      [...draftOrders, ...nonDraftOrders, ...fallbackOrders].forEach((order) => {
         const existing = orderMap.get(order.id);
         
         // Se não existe ou se a nova versão tem itens e a existente não, atualizar
