@@ -56,7 +56,6 @@ export default async function Products() {
     }).format(price / 100);
   };
 
-  // Agrupar produtos por categoria
   const productsByCategory = products.reduce((acc, product) => {
     const categoryName = product.category?.name || "Sem categoria";
     if (!acc[categoryName]) {
@@ -65,6 +64,12 @@ export default async function Products() {
     acc[categoryName].push(product);
     return acc;
   }, {} as Record<string, Product[]>);
+
+  Object.keys(productsByCategory).forEach(key => {
+    productsByCategory[key].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+  });
+
+  const sortedCategories = Object.keys(productsByCategory).sort((a, b) => a.localeCompare(b, 'pt-BR'));
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -81,7 +86,9 @@ export default async function Products() {
 
       {products.length !== 0 && (
         <div className="space-y-6">
-          {Object.entries(productsByCategory).map(([categoryName, categoryProducts]) => (
+          {sortedCategories.map((categoryName) => {
+            const categoryProducts = productsByCategory[categoryName];
+            return (
             <div key={categoryName} className="space-y-3">
               <h2 className="text-xl font-normal text-black border-b border-app-border pb-2">
                 {categoryName}
@@ -138,7 +145,8 @@ export default async function Products() {
                 </Table>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

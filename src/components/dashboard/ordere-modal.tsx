@@ -42,8 +42,10 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
   const [showReceive, setShowReceive] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
+  const [productSearch, setProductSearch] = useState("");
+  const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
+  const [adicionaisSearch, setAdicionaisSearch] = useState("");
+  const [selectedAdicionais, setSelectedAdicionais] = useState<Set<string>>(new Set());
   const [quantity, setQuantity] = useState(1);
   const [receivedAmount, setReceivedAmount] = useState(""); // Valor formatado (R$ 15,00)
   const [paymentMethod, setPaymentMethod] = useState<string>("DINHEIRO");
@@ -143,8 +145,10 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
   useEffect(() => {
     // Limpar estados do formulário de adicionar item
     setShowAddItem(false);
-    setSelectedCategory(null);
-    setSelectedProduct(null);
+    setProductSearch("");
+    setSelectedProducts(new Set());
+    setAdicionaisSearch("");
+    setSelectedAdicionais(new Set());
     setQuantity(1);
     
     // Limpar estados do formulário de receber
@@ -221,8 +225,8 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
           }),
         ]);
 
-        const categoriesList = categoriesData || [];
-        const productsList = productsData || [];
+        const categoriesList = (categoriesData || []).sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+        const productsList = (productsData || []).sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
         
         setCategories(categoriesList);
         setProducts(productsList);
@@ -427,38 +431,51 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
     }
   };
 
-  const handleAddItem = async () => {
-    if (!orderId || !selectedProduct) return;
+  const handleAddItems = async () => {
+    if (!orderId || (selectedProducts.size === 0 && selectedAdicionais.size === 0)) return;
 
     try {
-      // Usar o adapter que já faz a serialização corretamente
       const api = getApiAdapter();
-      await api.post("/api/order/add", {
-        order_id: orderId,
-        product_id: selectedProduct,
-        amount: quantity,
-      }, { token });
-
-      // Recarregar o pedido para obter os dados atualizados
-      const updatedOrder = await fetchOrder();
+      const items: Array<{ product_id: string; amount: number }> = [];
       
-      // Após adicionar item, selecionar automaticamente todos os itens do pedido
-      // Isso permite que o usuário possa enviar para produção ou receber
-      if (updatedOrder && updatedOrder.draft && updatedOrder.items && updatedOrder.items.length > 0) {
-        const allItemIds = new Set(updatedOrder.items.map((item) => item.id));
-        setSelectedItems(allItemIds);
+      selectedProducts.forEach(productId => {
+        items.push({ product_id: productId, amount: quantity });
+      });
+      
+      selectedAdicionais.forEach(productId => {
+        items.push({ product_id: productId, amount: 1 });
+      });
+
+      if (items.length === 0) return;
+
+      try {
+        await api.post("/api/order/add-items", {
+          order_id: orderId,
+          items: items,
+        }, { token });
+      } catch (err) {
+        for (const item of items) {
+          await api.post("/api/order/add", {
+            order_id: orderId,
+            product_id: item.product_id,
+            amount: item.amount,
+          }, { token });
+        }
       }
+
+      await fetchOrder(false);
       
       setShowAddItem(false);
-      setSelectedCategory(null);
-      setSelectedProduct(null);
+      setProductSearch("");
+      setSelectedProducts(new Set());
+      setAdicionaisSearch("");
+      setSelectedAdicionais(new Set());
       setQuantity(1);
       
-      // Notificar componentes sobre atualização do pedido (atualização silenciosa)
       orderEventHelpers.notifyOrderUpdated();
     } catch (error) {
-      console.error("Erro ao adicionar item:", error);
-      alert(error instanceof Error ? error.message : "Erro ao adicionar item");
+      console.error("Erro ao adicionar itens:", error);
+      alert(error instanceof Error ? error.message : "Erro ao adicionar itens");
     }
   };
 
@@ -547,12 +564,16 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
       // Notificar componentes sobre pedido recebido (atualização silenciosa)
       orderEventHelpers.notifyOrderReceived();
 
-      // Sucesso: fechar modal de recebimento
+      await fetchOrder(false);
+      
       setShowReceive(false);
       setReceivedAmount("");
       setPaymentMethod("DINHEIRO");
       setReceiving(false);
-      onClose();
+      
+      if (!isPartial) {
+        onClose();
+      }
     } catch (error) {
       console.error("Erro ao receber pedido:", error);
       alert(error instanceof Error ? error.message : "Erro ao receber pedido");
@@ -805,121 +826,96 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
 
       {/* Dialog: Adicionar Item */}
       <Dialog open={showAddItem} onOpenChange={setShowAddItem}>
-        <DialogContent className="bg-app-card border-app-border text-black max-w-lg">
+        <DialogContent className="bg-app-card border-app-border text-black max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-xl font-normal tracking-tight">
               Adicionar Item ao Pedido
             </DialogTitle>
             <DialogDescription className="text-gray-600">
-              Selecione o produto e a quantidade
+              Busque e selecione produtos
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 mt-4">
+          <div className="space-y-6 mt-4">
             <div>
-              <Label htmlFor="category" className="mb-2">
-                Categoria
+              <Label htmlFor="product-search" className="mb-2">
+                Produto
               </Label>
-              <Select 
-                value={selectedCategory || "all"} 
-                onValueChange={(value: string) => {
-                  const newCategory = value === "all" ? null : value;
-                  setSelectedCategory(newCategory);
-                  // Limpar produto selecionado quando mudar categoria
-                  setSelectedProduct(null);
+              <Input
+                id="product-search"
+                type="text"
+                placeholder="Digite pelo menos 2 letras para buscar..."
+                className="border-app-border bg-white text-black"
+                value={productSearch}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setProductSearch(value);
+                  if (value.length < 2) {
+                    setSelectedProducts(new Set());
+                  }
                 }}
-              >
-                <SelectTrigger className="border-app-border bg-white text-black">
-                  <SelectValue placeholder="Selecione uma categoria" />
-                </SelectTrigger>
-                <SelectContent className="bg-app-card border-app-border">
-                  <SelectItem value="all" className="text-black hover:bg-transparent cursor-pointer">
-                    Todas as categorias
-                  </SelectItem>
-                  {categories.map((category) => (
-                    <SelectItem
-                      key={category.id}
-                      value={category.id}
-                      className="text-black hover:bg-transparent cursor-pointer"
-                    >
-                      {category.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="product" className="mb-2">
-                Produto *
-              </Label>
-              <Select
-                value={selectedProduct || ""}
-                onValueChange={setSelectedProduct}
-                required
-              >
-                <SelectTrigger className="border-app-border bg-white text-black">
-                  <SelectValue placeholder="Selecione um produto" />
-                </SelectTrigger>
-                <SelectContent className="bg-app-card border-app-border max-h-60">
-                  {(() => {
-                    // Filtrar produtos desabilitados primeiro
-                    const enabledProducts = products.filter(p => !p.disabled);
-                    
-                    // Se nenhuma categoria selecionada, mostrar todos
-                    if (!selectedCategory || selectedCategory === "" || selectedCategory === "all") {
-                      return enabledProducts;
-                    }
-                    
-                    // Filtrar por categoria selecionada
-                    const selectedCategoryId = String(selectedCategory).trim();
-                    const filtered = enabledProducts.filter((p) => {
-                      const productCategoryId = String(p.category_id || "").trim();
-                      
-                      // Comparação exata (case-sensitive para IDs)
-                      const match = productCategoryId === selectedCategoryId;
-                      
-                      // Debug em desenvolvimento
-                      if (process.env.NODE_ENV === "development" && !match) {
-                        console.log("Produto não corresponde:", {
-                          productName: p.name,
-                          productCategoryId,
-                          selectedCategoryId,
-                          productCategoryIdType: typeof p.category_id,
-                          selectedCategoryType: typeof selectedCategory
-                        });
-                      }
-                      
-                      return match;
-                    });
-                    
-                    // Debug: mostrar quantos produtos foram encontrados
-                    if (process.env.NODE_ENV === "development") {
-                      console.log("Filtro categoria aplicado:", {
-                        selectedCategoryId,
-                        totalProducts: enabledProducts.length,
-                        filteredProducts: filtered.length,
-                        filteredNames: filtered.map(p => p.name)
-                      });
-                    }
-                    
-                    return filtered;
-                  })()
-                    .map((product) => (
-                      <SelectItem
-                        key={product.id}
-                        value={product.id}
-                        className="text-black hover:bg-transparent cursor-pointer"
+              />
+              {productSearch.length >= 2 && (
+                <div className="mt-2 border border-app-border rounded-lg max-h-48 overflow-y-auto bg-white">
+                  {products
+                    .filter(p => !p.disabled && p.name.toLowerCase().includes(productSearch.toLowerCase()))
+                    .map((product) => {
+                      const isSelected = selectedProducts.has(product.id);
+                      return (
+                        <div
+                          key={product.id}
+                          onClick={() => {
+                            const newSelected = new Set(selectedProducts);
+                            if (isSelected) {
+                              newSelected.delete(product.id);
+                            } else {
+                              newSelected.add(product.id);
+                            }
+                            setSelectedProducts(newSelected);
+                          }}
+                          className={`p-3 cursor-pointer border-b border-app-border last:border-b-0 hover:bg-gray-50 ${
+                            isSelected ? "bg-green-50 border-green-200" : ""
+                          }`}
+                        >
+                          <div className="flex justify-between items-center">
+                            <span className="font-normal">{product.name}</span>
+                            <span className="text-brand-primary">{formatPrice(product.price)}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              )}
+              {selectedProducts.size > 0 && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {Array.from(selectedProducts).map((productId) => {
+                    const product = products.find(p => p.id === productId);
+                    if (!product) return null;
+                    return (
+                      <span
+                        key={productId}
+                        className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-800 rounded text-sm"
                       >
-                        {product.name} - {formatPrice(product.price)}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
+                        {product.name}
+                        <button
+                          onClick={() => {
+                            const newSelected = new Set(selectedProducts);
+                            newSelected.delete(productId);
+                            setSelectedProducts(newSelected);
+                          }}
+                          className="hover:text-green-900"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             <div>
               <Label htmlFor="quantity" className="mb-2">
-                Quantidade *
+                Quantidade para produtos selecionados
               </Label>
               <div className="flex items-center gap-2">
                 <Button
@@ -951,13 +947,119 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
               </div>
             </div>
 
+            <div>
+              <Label htmlFor="adicionais-search" className="mb-2">
+                Adicionais
+              </Label>
+              <Input
+                id="adicionais-search"
+                type="text"
+                placeholder="Digite pelo menos 2 letras para buscar adicionais..."
+                className="border-app-border bg-white text-black"
+                value={adicionaisSearch}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setAdicionaisSearch(value);
+                  if (value.length < 2) {
+                    setSelectedAdicionais(new Set());
+                  }
+                }}
+              />
+              {adicionaisSearch.length >= 2 && (() => {
+                const adicionaisCategory = categories.find(c => c.name.toLowerCase() === "adicionais");
+                if (!adicionaisCategory) return null;
+                const adicionaisProducts = products.filter(p => 
+                  !p.disabled && 
+                  String(p.category_id).trim() === String(adicionaisCategory.id).trim() &&
+                  p.name.toLowerCase().includes(adicionaisSearch.toLowerCase())
+                );
+                return (
+                  <div className="mt-2 border border-app-border rounded-lg max-h-48 overflow-y-auto bg-white">
+                    {adicionaisProducts.map((product) => {
+                      const isSelected = selectedAdicionais.has(product.id);
+                      return (
+                        <div
+                          key={product.id}
+                          onClick={() => {
+                            const newSelected = new Set(selectedAdicionais);
+                            if (isSelected) {
+                              newSelected.delete(product.id);
+                            } else {
+                              newSelected.add(product.id);
+                            }
+                            setSelectedAdicionais(newSelected);
+                          }}
+                          className={`p-3 cursor-pointer border-b border-app-border last:border-b-0 hover:bg-gray-50 ${
+                            isSelected ? "bg-green-50 border-green-200" : ""
+                          }`}
+                        >
+                          <div className="flex justify-between items-center">
+                            <span className="font-normal">{product.name}</span>
+                            <span className="text-brand-primary">{formatPrice(product.price)}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+              {selectedAdicionais.size > 0 && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {Array.from(selectedAdicionais).map((productId) => {
+                    const product = products.find(p => p.id === productId);
+                    if (!product) return null;
+                    return (
+                      <span
+                        key={productId}
+                        className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 rounded text-sm"
+                      >
+                        {product.name}
+                        <button
+                          onClick={() => {
+                            const newSelected = new Set(selectedAdicionais);
+                            newSelected.delete(productId);
+                            setSelectedAdicionais(newSelected);
+                          }}
+                          className="hover:text-blue-900"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {(selectedProducts.size > 0 || selectedAdicionais.size > 0) && (
+              <div className="bg-gray-50 rounded-lg p-4 border border-app-border">
+                <div className="flex justify-between items-center">
+                  <span className="font-normal text-gray-700">Total:</span>
+                  <span className="text-xl font-normal text-brand-primary">
+                    {formatPrice(
+                      Array.from(selectedProducts).reduce((sum, id) => {
+                        const product = products.find(p => p.id === id);
+                        return sum + (product ? product.price * quantity : 0);
+                      }, 0) +
+                      Array.from(selectedAdicionais).reduce((sum, id) => {
+                        const product = products.find(p => p.id === id);
+                        return sum + (product ? product.price : 0);
+                      }, 0)
+                    )}
+                  </span>
+                </div>
+              </div>
+            )}
+
             <div className="flex gap-3 pt-2">
               <Button
                 variant="outline"
                 onClick={() => {
                   setShowAddItem(false);
-                  setSelectedCategory(null);
-                  setSelectedProduct(null);
+                  setProductSearch("");
+                  setSelectedProducts(new Set());
+                  setAdicionaisSearch("");
+                  setSelectedAdicionais(new Set());
                   setQuantity(1);
                 }}
                 className="flex-1 border-app-border hover:bg-transparent text-black"
@@ -965,8 +1067,8 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
                 Cancelar
               </Button>
               <Button
-                onClick={handleAddItem}
-                disabled={!selectedProduct}
+                onClick={handleAddItems}
+                disabled={selectedProducts.size === 0 && selectedAdicionais.size === 0}
                 className="flex-1 bg-brand-primary hover:bg-brand-primary/90 text-black tech-shadow tech-hover font-normal"
               >
                 Adicionar
