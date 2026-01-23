@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { ShoppingCart, Package, Tags, LogOut, Menu, ChefHat } from "lucide-react";
+import { ShoppingCart, Package, LogOut, Menu, ChefHat } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -34,11 +34,6 @@ const menuItems = [
     title: "Produtos",
     href: "/dashboard/products",
     icon: Package,
-  },
-  {
-    title: "Categorias",
-    href: "/dashboard/categories",
-    icon: Tags,
   },
 ];
 
