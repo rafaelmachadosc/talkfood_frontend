@@ -561,16 +561,24 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
         return;
       }
 
-      // Notificar componentes sobre pedido recebido (atualização silenciosa)
       orderEventHelpers.notifyOrderReceived();
 
-      await fetchOrder(false);
-      
+      if (isPartial) {
+        setOrder((current) => {
+          if (!current?.items) return current;
+          const remainingItems = current.items.filter((item) => !selectedItems.has(item.id));
+          return { ...current, items: remainingItems };
+        });
+        setSelectedItems(new Set());
+      } else {
+        await fetchOrder(false);
+      }
+
       setShowReceive(false);
       setReceivedAmount("");
       setPaymentMethod("DINHEIRO");
       setReceiving(false);
-      
+
       if (!isPartial) {
         onClose();
       }
