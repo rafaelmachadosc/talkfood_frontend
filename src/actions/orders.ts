@@ -206,17 +206,18 @@ export async function receiveOrderAction(
       try {
         await api.put("/api/order/finish", { order_id: orderId }, { token });
       } catch (finishErr) {
-      console.error("Erro ao finalizar pedido:", finishErr);
-      let errorMessage = "Erro ao finalizar o pedido";
-      if (finishErr instanceof Error) {
-        errorMessage = finishErr.message || errorMessage;
-        if (errorMessage.includes("404")) {
-          errorMessage = "Pedido não encontrado. Ele pode ter sido removido.";
-        } else if (errorMessage.includes("400")) {
-          errorMessage = "Erro ao processar a finalização do pedido.";
+        console.error("Erro ao finalizar pedido:", finishErr);
+        let errorMessage = "Erro ao finalizar o pedido";
+        if (finishErr instanceof Error) {
+          errorMessage = finishErr.message || errorMessage;
+          if (errorMessage.includes("404")) {
+            errorMessage = "Pedido não encontrado. Ele pode ter sido removido.";
+          } else if (errorMessage.includes("400")) {
+            errorMessage = "Erro ao processar a finalização do pedido.";
+          }
         }
+        return { success: false, error: errorMessage };
       }
-      return { success: false, error: errorMessage };
     }
 
     revalidatePath("/dashboard");
