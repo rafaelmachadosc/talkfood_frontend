@@ -39,7 +39,8 @@ export function Orders({ token }: OrdersProps) {
   const [loading, setLoading] = useState(false);
   const [orders, setOrders] = useState<Order[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<null | string>(null);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchMesa, setSearchMesa] = useState("");
+  const [searchBalcao, setSearchBalcao] = useState("");
 
   const safeFetchOrders = async (endpoint: string) => {
     try {
@@ -221,18 +222,18 @@ export function Orders({ token }: OrdersProps) {
     return groupedArray;
   };
 
-  const filteredGroups = groupOrdersByTable(orders).filter((group) => {
-    if (!searchTerm.trim()) return true;
-    const term = searchTerm.trim().toLowerCase();
+  const filterGroupByTerm = (group: GroupedOrders, term: string) => {
+    if (!term.trim()) return true;
+    const normalized = term.trim().toLowerCase();
     const tableText = group.table ? String(group.table) : "";
     const comandaText = group.comanda ? String(group.comanda) : "";
     const nameText = group.name ? group.name.toLowerCase() : "";
     return (
-      tableText.includes(term) ||
-      comandaText.toLowerCase().includes(term) ||
-      nameText.includes(term)
+      tableText.includes(normalized) ||
+      comandaText.toLowerCase().includes(normalized) ||
+      nameText.includes(normalized)
     );
-  });
+  };
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -245,12 +246,6 @@ export function Orders({ token }: OrdersProps) {
         </div>
 
         <div className="flex gap-2">
-          <Input
-            placeholder="Buscar mesa, comanda ou pedido..."
-            className="border-app-border bg-white text-black w-72"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
           <OrderForm />
           <Button
             className="bg-brand-primary text-black hover:bg-brand-primary"
@@ -336,9 +331,19 @@ export function Orders({ token }: OrdersProps) {
             <div className="mb-6 pb-4 border-b border-app-border">
               <h2 className="text-xl font-normal text-black mb-1">Balcão</h2>
             </div>
+            <div className="mb-4">
+              <Input
+                placeholder="Buscar balcão..."
+                className="border-app-border bg-white text-black w-full"
+                value={searchBalcao}
+                onChange={(e) => setSearchBalcao(e.target.value)}
+              />
+            </div>
             <div className="max-h-[calc(100vh-260px)] overflow-y-auto pr-2">
               {(() => {
-                const balcaoGroups = filteredGroups.filter((g) => g.key.startsWith("BALCAO_"));
+                const balcaoGroups = groupOrdersByTable(orders)
+                  .filter((g) => g.key.startsWith("BALCAO_"))
+                  .filter((g) => filterGroupByTerm(g, searchBalcao));
                 
                 return balcaoGroups.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-12 bg-gray-50/50 rounded-lg border-2 border-dashed border-app-border">
@@ -362,7 +367,7 @@ export function Orders({ token }: OrdersProps) {
                     <Card
                       key={group.key}
                       className={cn(
-                        "bg-app-card text-black tech-shadow tech-hover transition-all duration-300 cursor-pointer border-2 border-cyan-400 w-full",
+                        "bg-app-card text-black tech-shadow tech-hover transition-all duration-300 cursor-pointer border-2 border-cyan-400 w-full h-[72px]",
                         group.hasNewOrders || group.hasInProduction || group.hasOpen ? "shadow-md" : ""
                       )}
                       onClick={() => setSelectedOrder(group.orders[0]?.id || null)}
@@ -370,7 +375,7 @@ export function Orders({ token }: OrdersProps) {
                         order: group.hasNewOrders ? -1 : 0,
                       }}
                     >
-                      <div className="p-3.5 h-[72px] grid grid-cols-3 items-center gap-3">
+                      <div className="p-3.5 h-full grid grid-cols-3 items-center gap-3">
                         <div className="flex flex-col gap-0.5 text-left">
                           <CardTitle className="text-sm font-normal tracking-tight">
                             Balcão - {formatPrice(group.total)}
@@ -405,9 +410,19 @@ export function Orders({ token }: OrdersProps) {
             <div className="mb-6 pb-4 border-b border-app-border">
               <h2 className="text-xl font-normal text-black mb-1">Mesas</h2>
             </div>
+            <div className="mb-4">
+              <Input
+                placeholder="Buscar mesa..."
+                className="border-app-border bg-white text-black w-full"
+                value={searchMesa}
+                onChange={(e) => setSearchMesa(e.target.value)}
+              />
+            </div>
             <div className="max-h-[calc(100vh-260px)] overflow-y-auto pr-2">
               {(() => {
-                const mesaGroups = filteredGroups.filter((g) => g.key.startsWith("MESA_"));
+                const mesaGroups = groupOrdersByTable(orders)
+                  .filter((g) => g.key.startsWith("MESA_"))
+                  .filter((g) => filterGroupByTerm(g, searchMesa));
                 const occupiedTables = new Map<number, GroupedOrders[]>();
                 mesaGroups.forEach((group) => {
                   if (group.table) {
@@ -430,8 +445,8 @@ export function Orders({ token }: OrdersProps) {
                           key={`MESA_${tableNumber}`}
                           className="relative transition-all duration-300"
                         >
-                          <Card className="bg-gray-50 text-black tech-shadow tech-hover border-2 border-gray-200 w-full p-0">
-                            <div className="p-3.5 h-[72px] grid grid-cols-3 items-center gap-3">
+                          <Card className="bg-gray-50 text-black tech-shadow tech-hover border-2 border-gray-200 w-full h-[72px] p-0">
+                            <div className="p-3.5 h-full grid grid-cols-3 items-center gap-3">
                               <CardTitle className="text-sm font-normal tracking-tight text-left">
                                 Mesa {tableNumber.toString().padStart(2, "0")}
                               </CardTitle>
@@ -466,8 +481,8 @@ export function Orders({ token }: OrdersProps) {
                             }
                           }}
                         >
-                          <Card className="bg-green-50 text-black tech-shadow tech-hover w-full border-2 border-green-400 p-0">
-                            <div className="p-3.5 h-[72px] grid grid-cols-3 items-center gap-3">
+                          <Card className="bg-green-50 text-black tech-shadow tech-hover w-full border-2 border-green-400 h-[72px] p-0">
+                            <div className="p-3.5 h-full grid grid-cols-3 items-center gap-3">
                               <div className="flex flex-col gap-0.5 text-left">
                                 <CardTitle className="text-sm font-normal tracking-tight">
                                   {tableNumber.toString().padStart(2, "0")} - {formatPrice(group.total)}
