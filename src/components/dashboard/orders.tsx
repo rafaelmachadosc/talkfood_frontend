@@ -362,7 +362,7 @@ export function Orders({ token }: OrdersProps) {
                     <Card
                       key={group.key}
                       className={cn(
-                        "bg-app-card text-black tech-shadow tech-hover transition-all duration-300 cursor-pointer border-2 border-cyan-400",
+                        "bg-app-card text-black tech-shadow tech-hover transition-all duration-300 cursor-pointer border-2 border-cyan-400 w-full",
                         group.hasNewOrders || group.hasInProduction || group.hasOpen ? "shadow-md" : ""
                       )}
                       onClick={() => setSelectedOrder(group.orders[0]?.id || null)}
@@ -430,7 +430,7 @@ export function Orders({ token }: OrdersProps) {
                           key={`MESA_${tableNumber}`}
                           className="relative transition-all duration-300"
                         >
-                          <Card className="bg-app-card text-black tech-shadow tech-hover border-2 border-green-300 p-3.5 min-h-[64px] grid grid-cols-3 items-center gap-3">
+                          <Card className="bg-gray-50 text-black tech-shadow tech-hover border-2 border-gray-200 p-3.5 min-h-[64px] grid grid-cols-3 items-center gap-3 w-full">
                             <CardTitle className="text-sm font-normal tracking-tight text-left">
                               Mesa {tableNumber.toString().padStart(2, "0")}
                             </CardTitle>
@@ -464,7 +464,7 @@ export function Orders({ token }: OrdersProps) {
                             }
                           }}
                         >
-                          <Card className="bg-app-card text-black tech-shadow tech-hover w-full border-2 border-green-300 p-3.5 min-h-[64px] grid grid-cols-3 items-center gap-3">
+                          <Card className="bg-green-50 text-black tech-shadow tech-hover w-full border-2 border-green-400 p-3.5 min-h-[64px] grid grid-cols-3 items-center gap-3">
                             <div className="flex flex-col gap-0.5 text-left">
                               <CardTitle className="text-sm font-normal tracking-tight">
                                 {tableNumber.toString().padStart(2, "0")} - {formatPrice(group.total)}
