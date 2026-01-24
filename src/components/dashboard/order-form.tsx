@@ -23,7 +23,11 @@ import { createOrderAction } from "@/actions/orders";
 import { useRouter } from "next/navigation";
 import { orderEventHelpers } from "@/lib/order-events";
 
-export function OrderForm() {
+interface OrderFormProps {
+  occupiedTables?: number[];
+}
+
+export function OrderForm({ occupiedTables = [] }: OrderFormProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [orderType, setOrderType] = useState<"MESA" | "BALCAO">("MESA");
@@ -134,15 +138,19 @@ export function OrderForm() {
                   <SelectValue placeholder="Selecione a mesa" />
                 </SelectTrigger>
                 <SelectContent className="bg-app-card border-app-border max-h-[200px] overflow-y-auto">
-                  {Array.from({ length: 20 }, (_, i) => i + 1).map((tableNumber) => (
-                    <SelectItem
-                      key={tableNumber}
-                      value={tableNumber.toString()}
-                      className="text-black hover:bg-transparent cursor-pointer"
-                    >
-                      Mesa {tableNumber.toString().padStart(2, '0')}
-                    </SelectItem>
-                  ))}
+                  {Array.from({ length: 20 }, (_, i) => i + 1).map((tableNumber) => {
+                    const isOccupied = occupiedTables.includes(tableNumber);
+                    return (
+                      <SelectItem
+                        key={tableNumber}
+                        value={tableNumber.toString()}
+                        disabled={isOccupied}
+                        className="text-black hover:bg-transparent cursor-pointer"
+                      >
+                        Mesa {tableNumber.toString().padStart(2, "0")}
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
               <p className="text-xs text-gray-500 mt-1">
