@@ -1,9 +1,8 @@
 import { apiClient } from "@/lib/api";
 import { getToken } from "@/lib/auth";
-import { Category, Product } from "@/lib/types";
+import { Product } from "@/lib/types";
 import { Package } from "lucide-react";
 import { ProductForm } from "@/components/dashboard/product-form";
-import { CategoryForm } from "@/components/dashboard/category-form";
 import { ProductActions } from "@/components/dashboard/product-actions";
 import {
   Table,
@@ -17,27 +16,6 @@ import {
 export default async function Products() {
   const token = await getToken();
 
-  // Buscar categorias para o formulário
-  let categories: Category[] = [];
-  try {
-    const primary = await apiClient<Category[]>("/api/category", {
-      token: token!,
-    });
-    const fallback = !primary || primary.length === 0
-      ? await apiClient<Category[]>("/api/categories", { token: token! })
-      : primary;
-    categories = (fallback || []).map((category: any) => ({
-      id: category.id ?? category.Id,
-      name: category.name ?? category.Name,
-      createdAt: category.createdAt ?? category.CreatedAt,
-    }));
-    categories = categories.filter((category) => category.id && category.name);
-    categories.sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
-  } catch (error) {
-    console.error("Erro ao buscar categorias:", error);
-    categories = [];
-  }
-
   // Buscar produtos
   let products: Product[] = [];
   try {
@@ -45,15 +23,6 @@ export default async function Products() {
       token: token!,
     }) || [];
     
-    // Debug: verificar se produtos têm category_id
-    if (process.env.NODE_ENV === "development") {
-      console.log("Produtos carregados:", products.map(p => ({
-        name: p.name,
-        category_id: p.category_id,
-        hasCategory: !!p.category_id,
-        category: p.category
-      })));
-    }
   } catch (error) {
     console.error("Erro ao buscar produtos:", error);
     products = [];
@@ -79,10 +48,7 @@ export default async function Products() {
           <p className="text-sm sm:text-base mt-1">Gerencie seus produtos</p>
         </div>
 
-        <div className="flex gap-2">
-          <CategoryForm />
-          <ProductForm categories={categories} />
-        </div>
+        <ProductForm />
       </div>
 
       {products.length !== 0 && (
@@ -100,9 +66,8 @@ export default async function Products() {
             </TableHeader>
             <TableBody>
               {sortedProducts.map((product) => {
-                const productCategory = categories.find(c => String(c.id).trim() === String(product.category_id).trim());
-                const categoryName = productCategory?.name || product.category?.name || "Sem categoria";
-                
+                const categoryName = product.category || "Sem categoria";
+
                 return (
                   <TableRow
                     key={product.id}
@@ -128,7 +93,7 @@ export default async function Products() {
                       </span>
                     </TableCell>
                     <TableCell className="text-right py-3 w-32">
-                      <ProductActions product={product} categories={categories} />
+                      <ProductActions product={product} />
                     </TableCell>
                   </TableRow>
                 );

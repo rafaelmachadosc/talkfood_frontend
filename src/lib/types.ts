@@ -14,12 +14,6 @@ export interface AuthResponse {
   token: string;
 }
 
-export interface Category {
-  id: string;
-  name: string;
-  createdAt: string;
-}
-
 export interface Product {
   id: string;
   name: string;
@@ -27,13 +21,9 @@ export interface Product {
   description: string;
   banner: string;
   disabled: boolean;
-  category_id: string;
+  category: string;
   createdAt: string;
   updatedAt: string;
-  category?: {
-    id: string;
-    name: string;
-  };
 }
 
 export interface Items {

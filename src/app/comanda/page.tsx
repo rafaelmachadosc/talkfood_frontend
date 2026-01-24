@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/dialog";
 import { formatPrice } from "@/lib/format";
 import { ShoppingCart, Plus, Minus, Package, Wallet, Send } from "lucide-react";
-import { Product, Category } from "@/lib/types";
+import { Product } from "@/lib/types";
 import { Logo } from "@/components/logo";
 import { fetchPublic, fetchPublicAll, postPublic } from "@/core/http/public-api-helper";
 import { HttpClientFactory } from "@/core/http/http-client-factory";
@@ -56,7 +56,7 @@ function ComandaPageContent() {
   
   // Mesa padrão: 01 (primeira mesa)
   const [selectedTable, setSelectedTable] = useState<string>("01");
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -84,13 +84,19 @@ function ComandaPageContent() {
   useEffect(() => {
     async function loadData() {
       try {
-        const [categoriesData, productsData] = await fetchPublicAll<[Category[], Product[]]>([
-          "/api/public/category",
+        const [productsData] = await fetchPublicAll<[Product[]]>([
           "/api/public/products?disabled=false",
         ]);
 
-        setCategories(categoriesData);
         setProducts(productsData);
+        const uniqueCategories = Array.from(
+          new Set(
+            (productsData || [])
+              .map((p) => (p.category || "").trim())
+              .filter((category) => category !== "")
+          )
+        ).sort((a, b) => a.localeCompare(b, "pt-BR"));
+        setCategories(uniqueCategories);
         setLoading(false);
       } catch (error) {
         console.error("Erro ao carregar dados:", error);
@@ -186,7 +192,7 @@ function ComandaPageContent() {
   }, [selectedTable]);
 
   const filteredProducts = selectedCategory
-    ? products.filter((p) => p.category_id === selectedCategory)
+    ? products.filter((p) => (p.category || "").trim() === selectedCategory)
     : products;
 
   const addItemToOrder = async (product: Product) => {
@@ -555,16 +561,16 @@ function ComandaPageContent() {
                   </Button>
                   {categories.map((category) => (
                     <Button
-                      key={category.id}
-                      variant={selectedCategory === category.id ? "default" : "outline"}
-                      onClick={() => setSelectedCategory(category.id)}
+                      key={category}
+                      variant={selectedCategory === category ? "default" : "outline"}
+                      onClick={() => setSelectedCategory(category)}
                       className={`${
-                        selectedCategory === category.id
+                        selectedCategory === category
                           ? "bg-brand-primary text-black tech-shadow tech-hover font-normal"
                           : "border-app-border text-black hover:bg-gray-100 tech-shadow tech-hover font-normal"
                       }`}
                     >
-                      {category.name}
+                      {category}
                     </Button>
                   ))}
                 </div>

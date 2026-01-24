@@ -1,6 +1,6 @@
 import { apiClient } from "@/lib/api";
 import { getApiAdapter } from "@/core/http/api-adapter";
-import { Order, Product, Category } from "@/lib/types";
+import { Order, Product } from "@/lib/types";
 import { useEffect, useState } from "react";
 import { orderEventHelpers } from "@/lib/order-events";
 import {
@@ -41,7 +41,6 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
   const [showAddItem, setShowAddItem] = useState(false);
   const [showReceive, setShowReceive] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
   const [productSearch, setProductSearch] = useState("");
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
   const [adicionaisSearch, setAdicionaisSearch] = useState("");
@@ -210,48 +209,27 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
 
   // Carregar produtos e categorias quando o modal abrir
   useEffect(() => {
-    async function loadProductsAndCategories() {
+    async function loadProducts() {
       if (!orderId) return;
       
       try {
-        const [categoriesData, productsData] = await Promise.all([
-          apiClient<Category[]>("/api/category", {
-            method: "GET",
-            token: token,
-          }),
-          apiClient<Product[]>("/api/products", {
-            method: "GET",
-            token: token,
-          }),
-        ]);
+        const productsData = await apiClient<Product[]>("/api/products", {
+          method: "GET",
+          token: token,
+        });
 
-        const categoriesList = (categoriesData || []).sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
-        const productsList = (productsData || []).sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
-        
-        setCategories(categoriesList);
+        const productsList = (productsData || []).sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
         setProducts(productsList);
         
-        // Debug: verificar dados carregados
-        if (process.env.NODE_ENV === "development") {
-          console.log("Categorias carregadas:", categoriesList.map(c => ({ id: c.id, name: c.name, idType: typeof c.id })));
-          console.log("Produtos carregados:", productsList.map(p => ({ 
-            name: p.name, 
-            category_id: p.category_id, 
-            category_idType: typeof p.category_id,
-            category_idString: String(p.category_id)
-          })));
-        }
       } catch (err) {
-        console.error("Erro ao carregar produtos e categorias:", err);
-        // Mostrar erro ao usuário
-        alert("Erro ao carregar produtos e categorias. Verifique se os endpoints estão implementados no backend.");
-        setCategories([]);
+        console.error("Erro ao carregar produtos:", err);
+        alert("Erro ao carregar produtos. Verifique se os endpoints estão implementados no backend.");
         setProducts([]);
       }
     }
 
     if (orderId) {
-      loadProductsAndCategories();
+      loadProducts();
     }
   }, [orderId, token]);
 
@@ -974,11 +952,9 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
                 }}
               />
               {adicionaisSearch.length >= 2 && (() => {
-                const adicionaisCategory = categories.find(c => c.name.toLowerCase() === "adicionais");
-                if (!adicionaisCategory) return null;
                 const adicionaisProducts = products.filter(p => 
                   !p.disabled && 
-                  String(p.category_id).trim() === String(adicionaisCategory.id).trim() &&
+                  String(p.category || "").toLowerCase() === "adicionais" &&
                   p.name.toLowerCase().includes(adicionaisSearch.toLowerCase())
                 );
                 return (

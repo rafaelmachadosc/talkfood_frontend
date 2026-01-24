@@ -11,42 +11,31 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { updateProductAction } from "@/actions/products";
 import { useRouter } from "next/navigation";
-import { Category, Product } from "@/lib/types";
+import { Product } from "@/lib/types";
 
 interface EditProductFormProps {
   product: Product;
-  categories: Category[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
 export function EditProductForm({
   product,
-  categories,
   open,
   onOpenChange,
 }: EditProductFormProps) {
   const router = useRouter();
-  const [selectedCategory, setSelectedCategory] = useState("");
+  const [categoryValue, setCategoryValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [priceValue, setPriceValue] = useState("");
 
   useEffect(() => {
     if (product) {
-      // Garantir que category_id seja string e esteja definido
-      const categoryId = String(product.category_id || "").trim();
-      setSelectedCategory(categoryId);
-      
-      // Converter centavos para formato BRL
+      const categoryText = String(product.category || "").trim();
+      setCategoryValue(categoryText);
+
       const priceInReais = product.price / 100;
       setPriceValue(
         priceInReais.toLocaleString("pt-BR", {
@@ -86,7 +75,7 @@ export function EditProductForm({
       name,
       description,
       price: priceInCents.toString(),
-      category_id: selectedCategory,
+      category: categoryValue,
     });
 
     setIsLoading(false);
@@ -175,38 +164,20 @@ export function EditProductForm({
             <Label htmlFor="edit-category" className="mb-2">
               Categoria
             </Label>
-            <Select
-              value={selectedCategory || ""}
-              onValueChange={(value) => setSelectedCategory(value)}
+            <Input
+              id="edit-category"
+              name="category"
               required
-            >
-              <SelectTrigger className="border-app-border bg-app-background text-black">
-                <SelectValue placeholder="Selecione uma categoria">
-                  {selectedCategory 
-                    ? categories.find(c => String(c.id).trim() === String(selectedCategory).trim())?.name 
-                    : "Selecione uma categoria"}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent className="bg-app-card border-app-border">
-                {categories.map((category) => {
-                  const categoryId = String(category.id).trim();
-                  return (
-                    <SelectItem
-                      key={category.id}
-                      value={categoryId}
-                      className="text-black hover:bg-transparent cursor-pointer"
-                    >
-                      {category.name}
-                    </SelectItem>
-                  );
-                })}
-              </SelectContent>
-            </Select>
+              placeholder="Digite a categoria..."
+              className="border-app-border bg-app-background text-black"
+              value={categoryValue}
+              onChange={(e) => setCategoryValue(e.target.value)}
+            />
           </div>
 
           <Button
             type="submit"
-            disabled={isLoading || !selectedCategory}
+            disabled={isLoading || !categoryValue}
             className="w-full bg-brand-primary text-black hover:bg-brand-primary disabled:opacity-50"
           >
             {isLoading ? "Salvando..." : "Salvar alterações"}

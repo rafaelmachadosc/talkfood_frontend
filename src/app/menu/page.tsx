@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Category, Product } from "@/lib/types";
+import { Product } from "@/lib/types";
 import { fetchPublicAll } from "@/core/http/public-api-helper";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,7 @@ interface CartItem {
 }
 
 export default function MenuPage() {
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -47,13 +47,19 @@ export default function MenuPage() {
   useEffect(() => {
     async function loadData() {
       try {
-        const [categoriesData, productsData] = await fetchPublicAll<[Category[], Product[]]>([
-          "/api/public/category",
+        const [productsData] = await fetchPublicAll<[Product[]]>([
           "/api/public/products?disabled=false",
         ]);
 
-        setCategories(categoriesData);
         setProducts(productsData);
+        const uniqueCategories = Array.from(
+          new Set(
+            (productsData || [])
+              .map((p) => (p.category || "").trim())
+              .filter((category) => category !== "")
+          )
+        ).sort((a, b) => a.localeCompare(b, "pt-BR"));
+        setCategories(uniqueCategories);
         setLoading(false);
       } catch (error) {
         console.error("Erro ao carregar dados:", error);
@@ -65,7 +71,7 @@ export default function MenuPage() {
   }, []);
 
   const filteredProducts = selectedCategory
-    ? products.filter((p) => p.category_id === selectedCategory)
+    ? products.filter((p) => (p.category || "").trim() === selectedCategory)
     : products;
 
   const addToCart = (product: Product) => {
@@ -168,16 +174,16 @@ export default function MenuPage() {
             </Button>
             {categories.map((category) => (
               <Button
-                key={category.id}
-                variant={selectedCategory === category.id ? "default" : "outline"}
-                onClick={() => setSelectedCategory(category.id)}
+                key={category}
+                variant={selectedCategory === category ? "default" : "outline"}
+                onClick={() => setSelectedCategory(category)}
                 className={`${
-                  selectedCategory === category.id
+                  selectedCategory === category
                     ? "bg-brand-primary text-black"
                     : "border-app-border text-black hover:bg-gray-100"
                 }`}
               >
-                {category.name}
+                {category}
               </Button>
             ))}
           </div>

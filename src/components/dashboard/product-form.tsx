@@ -13,25 +13,16 @@ import { Plus } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { createProductAction } from "@/actions/products";
 import { useRouter } from "next/navigation";
-import { Category } from "@/lib/types";
 
 interface ProductFormProps {
-  categories: Category[];
 }
 
-export function ProductForm({ categories }: ProductFormProps) {
+export function ProductForm(_: ProductFormProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState("");
+  const [categoryValue, setCategoryValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [priceValue, setPriceValue] = useState("");
 
@@ -60,7 +51,7 @@ export function ProductForm({ categories }: ProductFormProps) {
     const priceInCents = convertBRLToCents(priceValue);
 
     // Validar se categoria foi selecionada
-    if (!selectedCategory || selectedCategory.trim() === "") {
+    if (!categoryValue || categoryValue.trim() === "") {
       setIsLoading(false);
       alert("Por favor, selecione uma categoria.");
       return;
@@ -70,14 +61,14 @@ export function ProductForm({ categories }: ProductFormProps) {
       name,
       description,
       price: priceInCents.toString(),
-      category_id: selectedCategory,
+      category: categoryValue,
     });
 
     setIsLoading(false);
 
     if (result.success) {
       setOpen(false);
-      setSelectedCategory("");
+      setCategoryValue("");
       setPriceValue("");
       router.refresh();
       return;
@@ -174,31 +165,20 @@ export function ProductForm({ categories }: ProductFormProps) {
             <Label htmlFor="category" className="mb-2">
               Categoria
             </Label>
-            <Select
-              value={selectedCategory}
-              onValueChange={setSelectedCategory}
+            <Input
+              id="category"
+              name="category"
               required
-            >
-              <SelectTrigger className="border-app-border bg-app-background text-black">
-                <SelectValue placeholder="Selecione uma categoria" />
-              </SelectTrigger>
-              <SelectContent className="bg-app-card border-app-border">
-                {categories.map((category) => (
-                  <SelectItem
-                    key={category.id}
-                    value={category.id}
-                    className="text-black hover:bg-transparent cursor-pointer"
-                  >
-                    {category.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              placeholder="Digite a categoria..."
+              className="border-app-border bg-app-background text-black"
+              value={categoryValue}
+              onChange={(e) => setCategoryValue(e.target.value)}
+            />
           </div>
 
           <Button
             type="submit"
-            disabled={isLoading || !selectedCategory}
+            disabled={isLoading || !categoryValue}
             className="w-full bg-brand-primary text-black hover:bg-brand-primary disabled:opacity-50"
           >
             {isLoading ? "Criando..." : "Criar produto"}

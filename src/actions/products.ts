@@ -10,7 +10,7 @@ export async function createProductAction(data: {
   name: string;
   description: string;
   price: string;
-  category_id: string;
+  category: string;
 }) {
   try {
     const token = await getToken();
@@ -19,8 +19,7 @@ export async function createProductAction(data: {
       return { success: false, error: "Erro ao criar produto" };
     }
 
-    // Validar se category_id foi fornecido
-    if (!data.category_id || data.category_id.trim() === "") {
+    if (!data.category || data.category.trim() === "") {
       return { success: false, error: "Categoria é obrigatória" };
     }
 
@@ -59,7 +58,7 @@ export async function updateProductAction(data: {
   name: string;
   description: string;
   price: string;
-  category_id: string;
+  category: string;
 }) {
   try {
     const token = await getToken();
@@ -72,7 +71,7 @@ export async function updateProductAction(data: {
       return { success: false, error: "ID do produto é obrigatório" };
     }
 
-    if (!data.category_id || data.category_id.trim() === "") {
+    if (!data.category || data.category.trim() === "") {
       return { success: false, error: "Categoria é obrigatória" };
     }
 

@@ -2,7 +2,6 @@
 
 import { apiClient } from "@/lib/api";
 import { getToken } from "@/lib/auth";
-import { Category } from "@/lib/types";
 import { revalidatePath } from "next/cache";
 
 export async function createCategoryAction(formData: FormData) {
@@ -18,7 +17,7 @@ export async function createCategoryAction(formData: FormData) {
       name: name,
     };
 
-    await apiClient<Category>("/api/category", {
+    await apiClient("/api/category", {
       method: "POST",
       body: JSON.stringify(data),
       token: token,
