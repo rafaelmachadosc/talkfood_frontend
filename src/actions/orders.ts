@@ -34,7 +34,7 @@ export async function createOrderAction(data: {
       }
       payload.table = Number(data.table); // Garantir que é número
       if (data.comanda && data.comanda.trim() !== "") {
-        payload.comanda = data.comanda.trim();
+        payload.commandNumber = data.comanda.trim();
       }
     } else if (data.orderType === "BALCAO") {
       // Para BALCÃO, name é obrigatório
@@ -88,7 +88,7 @@ export async function updateOrderInfoAction(orderId: string, data: { comanda?: s
 
     const payload: Record<string, unknown> = { order_id: orderId };
     if (data.comanda !== undefined) {
-      payload.comanda = data.comanda;
+      payload.commandNumber = data.comanda;
     }
 
     try {

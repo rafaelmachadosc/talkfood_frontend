@@ -171,6 +171,7 @@ export function OrderForm({ occupiedTables = [] }: OrderFormProps) {
               className="border-app-border bg-white text-black"
               value={comanda}
               onChange={(e) => setComanda(e.target.value)}
+              required={orderType === "MESA"}
             />
           </div>
         )}

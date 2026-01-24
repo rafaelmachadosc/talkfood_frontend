@@ -158,7 +158,7 @@ export function Orders({ token }: OrdersProps) {
       // Criar chave única: mesa agrupa por número, balcão agrupa por ID (cada pedido é único)
       let key: string;
       if (order.orderType === "MESA" && order.table) {
-        const comanda = order.comanda ? String(order.comanda).trim() : "";
+        const comanda = order.comanda || order.commandNumber ? String(order.comanda || order.commandNumber).trim() : "";
         key = comanda ? `MESA_${order.table}_COMANDA_${comanda}` : `MESA_${order.table}`;
       } else {
         // Para BALCÃO, cada pedido é único - usar ID do pedido como chave
@@ -170,7 +170,7 @@ export function Orders({ token }: OrdersProps) {
         grouped[key] = {
           key,
           table: order.table,
-          comanda: order.comanda ? String(order.comanda).trim() : undefined,
+          comanda: order.comanda || order.commandNumber ? String(order.comanda || order.commandNumber).trim() : undefined,
           name: order.name, // Nome do cliente para pedidos de balcão
           phone: order.phone, // Telefone do cliente
           orders: [],
@@ -393,7 +393,7 @@ export function Orders({ token }: OrdersProps) {
                         </div>
                         <div className="flex flex-col items-end gap-0.5 text-xs text-black text-right">
                           {sortedGroupOrders.map((order) => {
-                            const label = order.name || order.comanda || "";
+                            const label = order.name || order.comanda || order.commandNumber || "";
                             if (!label) return null;
                             return (
                               <span key={order.id} className="leading-none">
@@ -504,8 +504,8 @@ export function Orders({ token }: OrdersProps) {
                                 {group.hasNewOrders ? "Novo pedido" : ""}
                               </div>
                               <div className="flex flex-col items-end gap-0.5 text-xs text-black text-right">
-                                {sortedGroupOrders.map((order) => {
-                                  const label = order.comanda || order.name || "";
+                              {sortedGroupOrders.map((order) => {
+                                const label = order.comanda || order.commandNumber || order.name || "";
                                   if (!label) return null;
                                   return (
                                     <span key={order.id} className="leading-none">

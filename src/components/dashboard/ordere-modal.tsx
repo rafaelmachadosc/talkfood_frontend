@@ -115,7 +115,10 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
       // Verificar se a resposta corresponde ao orderId atual (evitar race condition)
       if (response && response.id === orderId) {
         setOrder(response);
-        setComandaValue(response.comanda ? String(response.comanda) : "");
+        const responseComanda =
+          response.comanda ??
+          (response as { commandNumber?: string }).commandNumber;
+        setComandaValue(responseComanda ? String(responseComanda) : "");
         if (showLoading) {
           setLoading(false);
         }
@@ -512,7 +515,7 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
 
   const handleComandaSubmit = async () => {
     if (!order) return;
-    const currentValue = order.comanda ? String(order.comanda).trim() : "";
+    const currentValue = order.comanda || order.commandNumber ? String(order.comanda || order.commandNumber).trim() : "";
     if (comandaValue.trim() === currentValue) return;
     await handleSaveComanda();
   };
@@ -622,7 +625,7 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
 
   const handleReceiveComanda = async () => {
     if (!order || !order.table) return;
-    const comanda = (order.comanda || comandaValue || "").toString().trim();
+    const comanda = (order.comanda || order.commandNumber || comandaValue || "").toString().trim();
     if (!comanda) {
       alert("Informe a comanda antes de receber.");
       return;
@@ -677,7 +680,7 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
                 <p className="text-sm text-gray-600 mb-1">Modalidade</p>
                 <p className="text-lg font-normal">
                   {order.orderType === "MESA" 
-                    ? `Pedido na Mesa ${order.table ? order.table : ""}${(order.comanda || comandaValue) ? ` - ${(order.comanda || comandaValue).toString().trim()}` : ""}` 
+                    ? `Pedido na Mesa ${order.table ? order.table : ""}${(order.comanda || order.commandNumber || comandaValue) ? ` - ${(order.comanda || order.commandNumber || comandaValue).toString().trim()}` : ""}` 
                     : `Pedido no Balcão${order.name ? ` - ${order.name}` : ""}`}
                 </p>
               </div>
@@ -703,7 +706,7 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
                       variant="outline"
                       onClick={handleSaveComanda}
                       className="border-app-border text-black"
-                      disabled={comandaValue.trim() === (order.comanda ? String(order.comanda) : "")}
+                      disabled={comandaValue.trim() === (order.comanda || order.commandNumber ? String(order.comanda || order.commandNumber) : "")}
                     >
                       Salvar
                     </Button>
