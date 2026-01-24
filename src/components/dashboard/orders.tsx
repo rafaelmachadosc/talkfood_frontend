@@ -430,12 +430,14 @@ export function Orders({ token }: OrdersProps) {
                           key={`MESA_${tableNumber}`}
                           className="relative transition-all duration-300"
                         >
-                          <Card className="bg-gray-50 text-black tech-shadow tech-hover border-2 border-gray-200 p-3.5 min-h-[64px] grid grid-cols-3 items-center gap-3 w-full">
-                            <CardTitle className="text-sm font-normal tracking-tight text-left">
-                              Mesa {tableNumber.toString().padStart(2, "0")}
-                            </CardTitle>
-                            <div className="text-xs font-normal text-brand-primary text-center"></div>
-                            <p className="text-xs text-gray-400 text-right">Livre</p>
+                          <Card className="bg-gray-50 text-black tech-shadow tech-hover border-2 border-gray-200 w-full p-0">
+                            <div className="p-3.5 min-h-[64px] grid grid-cols-3 items-center gap-3">
+                              <CardTitle className="text-sm font-normal tracking-tight text-left">
+                                Mesa {tableNumber.toString().padStart(2, "0")}
+                              </CardTitle>
+                              <div className="text-xs font-normal text-brand-primary text-center"></div>
+                              <p className="text-xs text-gray-400 text-right">Livre</p>
+                            </div>
                           </Card>
                         </div>
                       );
@@ -464,25 +466,27 @@ export function Orders({ token }: OrdersProps) {
                             }
                           }}
                         >
-                          <Card className="bg-green-50 text-black tech-shadow tech-hover w-full border-2 border-green-400 p-3.5 min-h-[64px] grid grid-cols-3 items-center gap-3">
-                            <div className="flex flex-col gap-0.5 text-left">
-                              <CardTitle className="text-sm font-normal tracking-tight">
-                                {tableNumber.toString().padStart(2, "0")} - {formatPrice(group.total)}
-                              </CardTitle>
-                            </div>
-                            <div className="text-xs font-normal text-brand-primary text-center">
-                              {group.hasNewOrders ? "Novo pedido" : ""}
-                            </div>
-                            <div className="flex flex-col items-end gap-0.5 text-xs text-black text-right">
-                              {sortedGroupOrders.map((order) => {
-                                const label = order.comanda || order.name || "";
-                                if (!label) return null;
-                                return (
-                                  <span key={order.id} className="leading-none">
-                                    {label}
-                                  </span>
-                                );
-                              })}
+                          <Card className="bg-green-50 text-black tech-shadow tech-hover w-full border-2 border-green-400 p-0">
+                            <div className="p-3.5 min-h-[64px] grid grid-cols-3 items-center gap-3">
+                              <div className="flex flex-col gap-0.5 text-left">
+                                <CardTitle className="text-sm font-normal tracking-tight">
+                                  {tableNumber.toString().padStart(2, "0")} - {formatPrice(group.total)}
+                                </CardTitle>
+                              </div>
+                              <div className="text-xs font-normal text-brand-primary text-center">
+                                {group.hasNewOrders ? "Novo pedido" : ""}
+                              </div>
+                              <div className="flex flex-col items-end gap-0.5 text-xs text-black text-right">
+                                {sortedGroupOrders.map((order) => {
+                                  const label = order.comanda || order.name || "";
+                                  if (!label) return null;
+                                  return (
+                                    <span key={order.id} className="leading-none">
+                                      {label}
+                                    </span>
+                                  );
+                                })}
+                              </div>
                             </div>
                           </Card>
                         </div>
