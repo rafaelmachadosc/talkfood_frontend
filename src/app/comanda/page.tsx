@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/dialog";
 import { formatPrice } from "@/lib/format";
 import { ShoppingCart, Plus, Minus, Package, Wallet, Send } from "lucide-react";
-import { Product } from "@/lib/types";
+import { Product, Category } from "@/lib/types";
 import { Logo } from "@/components/logo";
 import { fetchPublic, fetchPublicAll, postPublic } from "@/core/http/public-api-helper";
 import { HttpClientFactory } from "@/core/http/http-client-factory";
@@ -56,7 +56,7 @@ function ComandaPageContent() {
   
   // Mesa padrão: 01 (primeira mesa)
   const [selectedTable, setSelectedTable] = useState<string>("01");
-  const [categories, setCategories] = useState<string[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -84,19 +84,13 @@ function ComandaPageContent() {
   useEffect(() => {
     async function loadData() {
       try {
-        const [productsData] = await fetchPublicAll<[Product[]]>([
-          "/api/public/products?disabled=false",
+        const [categoriesData, productsData] = await fetchPublicAll<[Category[], Product[]]>([
+          "/public/category",
+          "/public/products?disabled=false",
         ]);
 
+        setCategories(categoriesData);
         setProducts(productsData);
-        const uniqueCategories = Array.from(
-          new Set(
-            (productsData || [])
-              .map((p) => (p.category || "").trim())
-              .filter((category) => category !== "")
-          )
-        ).sort((a, b) => a.localeCompare(b, "pt-BR"));
-        setCategories(uniqueCategories);
         setLoading(false);
       } catch (error) {
         console.error("Erro ao carregar dados:", error);
@@ -119,7 +113,7 @@ function ComandaPageContent() {
       try {
         // Tentar buscar pedido em rascunho da mesa
         const orders = await fetchPublic<Order[]>(
-          `/api/public/orders?table=${selectedTable}&draft=true`
+          `/public/orders?table=${selectedTable}&draft=true`
         );
         
         const draftOrder = Array.isArray(orders) 
@@ -130,7 +124,7 @@ function ComandaPageContent() {
           // Carregar detalhes completos do pedido
           try {
             const orderDetail = await fetchPublic<Order>(
-              `/api/public/order/detail?order_id=${draftOrder.id}`
+              `/public/order/detail?order_id=${draftOrder.id}`
             );
             setCurrentOrder(orderDetail);
           } catch {
@@ -139,7 +133,7 @@ function ComandaPageContent() {
         } else {
           // Criar novo pedido em rascunho
           try {
-            const newOrder = await postPublic<Order>("/api/public/order", {
+            const newOrder = await postPublic<Order>("/public/order", {
               orderType: "MESA",
               table: Number(selectedTable),
               items: [], // Enviar items vazio para satisfazer validação do backend
@@ -170,7 +164,7 @@ function ComandaPageContent() {
       setLoadingOrders(true);
       try {
         const orders = await fetchPublic<Order[]>(
-          `/api/public/orders?table=${selectedTable}`
+          `/public/orders?table=${selectedTable}`
         );
         // Filtrar apenas pedidos finalizados (status: true)
         const finishedOrders = Array.isArray(orders) 
@@ -192,7 +186,7 @@ function ComandaPageContent() {
   }, [selectedTable]);
 
   const filteredProducts = selectedCategory
-    ? products.filter((p) => (p.category || "").trim() === selectedCategory)
+    ? products.filter((p) => p.category_id === selectedCategory)
     : products;
 
   const addItemToOrder = async (product: Product) => {
@@ -206,7 +200,7 @@ function ComandaPageContent() {
     // Se não tiver pedido, criar um primeiro
     if (!currentOrder || !orderId) {
       try {
-        const newOrder = await postPublic<{ id: string }>("/api/public/order", {
+        const newOrder = await postPublic<{ id: string }>("/public/order", {
           orderType: "MESA",
           table: Number(selectedTable),
           items: [], // Enviar items vazio para satisfazer validação do backend
@@ -246,7 +240,7 @@ function ComandaPageContent() {
     }
 
     try {
-      await postPublic("/api/public/order/add", {
+      await postPublic("/public/order/add", {
         order_id: orderId,
         product_id: product.id,
         amount: 1,
@@ -255,7 +249,7 @@ function ComandaPageContent() {
       // Recarregar o pedido completo para ter os dados atualizados do servidor
       try {
         const updatedOrder = await fetchPublic<Order>(
-          `/api/public/order/detail?order_id=${orderId}`
+          `/public/order/detail?order_id=${orderId}`
         );
         setCurrentOrder(updatedOrder);
       } catch {
@@ -315,7 +309,7 @@ function ComandaPageContent() {
 
     try {
       const publicClient = HttpClientFactory.getPublicClient();
-      await publicClient.delete(`/api/public/order/remove?item_id=${itemId}`);
+      await publicClient.delete(`/public/order/remove?item_id=${itemId}`);
       
       setCurrentOrder((prev) => {
         if (!prev) return null;
@@ -367,7 +361,7 @@ function ComandaPageContent() {
       // Nota: Pode ser que o backend não tenha endpoint para atualizar, então usaremos o send que pode aceitar name
       
       const publicClient = HttpClientFactory.getPublicClient();
-      await publicClient.put("/api/public/order/send", {
+      await publicClient.put("/public/order/send", {
         order_id: currentOrder.id,
         name: trimmedName, // Incluir nome no send se o backend suportar
       });
@@ -561,16 +555,16 @@ function ComandaPageContent() {
                   </Button>
                   {categories.map((category) => (
                     <Button
-                      key={category}
-                      variant={selectedCategory === category ? "default" : "outline"}
-                      onClick={() => setSelectedCategory(category)}
+                      key={category.id}
+                      variant={selectedCategory === category.id ? "default" : "outline"}
+                      onClick={() => setSelectedCategory(category.id)}
                       className={`${
-                        selectedCategory === category
+                        selectedCategory === category.id
                           ? "bg-brand-primary text-black tech-shadow tech-hover font-normal"
                           : "border-app-border text-black hover:bg-gray-100 tech-shadow tech-hover font-normal"
                       }`}
                     >
-                      {category}
+                      {category.name}
                     </Button>
                   ))}
                 </div>

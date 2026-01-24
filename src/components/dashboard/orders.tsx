@@ -336,18 +336,19 @@ export function Orders({ token }: OrdersProps) {
             <div className="mb-6 pb-4 border-b border-app-border">
               <h2 className="text-xl font-normal text-black mb-1">Balcão</h2>
             </div>
-            {(() => {
-              const balcaoGroups = filteredGroups.filter((g) => g.key.startsWith("BALCAO_"));
-              
-              return balcaoGroups.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 bg-gray-50/50 rounded-lg border-2 border-dashed border-app-border">
-                  <ShoppingCart className="w-12 h-12 text-gray-400 mb-3" />
-                  <p className="text-center text-gray-600 font-normal">Nenhum pedido de balcão encontrado</p>
-                  <p className="text-center text-gray-500 text-sm mt-1">Os pedidos do balcão aparecerão aqui</p>
-                </div>
-              ) : (
-                <div className="flex flex-col gap-2.5">
-                  {balcaoGroups.map((group) => {
+            <div className="max-h-[calc(100vh-260px)] overflow-y-auto pr-2">
+              {(() => {
+                const balcaoGroups = filteredGroups.filter((g) => g.key.startsWith("BALCAO_"));
+                
+                return balcaoGroups.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-12 bg-gray-50/50 rounded-lg border-2 border-dashed border-app-border">
+                    <ShoppingCart className="w-12 h-12 text-gray-400 mb-3" />
+                    <p className="text-center text-gray-600 font-normal">Nenhum pedido de balcão encontrado</p>
+                    <p className="text-center text-gray-500 text-sm mt-1">Os pedidos do balcão aparecerão aqui</p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-2.5">
+                    {balcaoGroups.map((group) => {
             // Ordenar pedidos dentro do grupo: novos primeiro
             const sortedGroupOrders = [...group.orders].sort((a, b) => {
               const aNew = !(a.viewed ?? false);
@@ -357,54 +358,52 @@ export function Orders({ token }: OrdersProps) {
               return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
             });
 
-              return (
-              <Card
-                key={group.key}
-                className={cn(
-                  "bg-app-card text-black tech-shadow tech-hover transition-all duration-300 cursor-pointer",
-                  group.hasNewOrders
-                    ? "border-2 border-red-500 shadow-md shadow-red-500/20"
-                    : group.hasInProduction
-                    ? "border-2 border-yellow-500 shadow-md shadow-yellow-500/20"
-                    : group.hasOpen
-                    ? "border-2 border-green-500 shadow-md shadow-green-500/20"
-                    : "border-app-border"
-                )}
-                onClick={() => setSelectedOrder(group.orders[0]?.id || null)}
-                style={{
-                  order: group.hasNewOrders ? -1 : 0,
-                }}
-              >
-                <div className="p-2.5 flex items-center justify-between gap-3">
-                  <div className="flex flex-col gap-0.5">
-                    <CardTitle className="text-sm font-normal tracking-tight">
-                      {group.name || "Balcão"}
-                    </CardTitle>
-                    <div className="text-xs text-brand-primary">
-                      {formatPrice(group.total)}
+                    return (
+                    <Card
+                      key={group.key}
+                      className={cn(
+                        "bg-app-card text-black tech-shadow tech-hover transition-all duration-300 cursor-pointer",
+                        group.hasNewOrders
+                          ? "border-2 border-red-500 shadow-md shadow-red-500/20"
+                          : group.hasInProduction
+                          ? "border-2 border-yellow-500 shadow-md shadow-yellow-500/20"
+                          : group.hasOpen
+                          ? "border-2 border-green-500 shadow-md shadow-green-500/20"
+                          : "border-app-border"
+                      )}
+                      onClick={() => setSelectedOrder(group.orders[0]?.id || null)}
+                      style={{
+                        order: group.hasNewOrders ? -1 : 0,
+                      }}
+                    >
+                      <div className="p-2.5 grid grid-cols-3 items-center gap-3">
+                        <div className="flex flex-col gap-0.5 text-left">
+                          <CardTitle className="text-sm font-normal tracking-tight">
+                            Balcão - {formatPrice(group.total)}
+                          </CardTitle>
+                        </div>
+                        <div className="text-xs font-normal text-brand-primary text-center">
+                          {group.hasNewOrders ? "Novo pedido" : ""}
+                        </div>
+                        <div className="flex flex-col items-end gap-0.5 text-xs text-black text-right">
+                          {sortedGroupOrders.map((order) => {
+                            const label = order.name || order.comanda || "";
+                            if (!label) return null;
+                            return (
+                              <span key={order.id} className="leading-none">
+                                {label}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </Card>
+                        );
+                      })}
                     </div>
-                  </div>
-                  <div className="text-xs font-normal text-brand-primary">
-                    {group.hasNewOrders ? "Novo pedido" : ""}
-                  </div>
-                  <div className="flex flex-col items-end gap-0.5 text-xs text-black">
-                    {sortedGroupOrders.map((order) => {
-                      const label = order.name || order.comanda || "";
-                      if (!label) return null;
-                      return (
-                        <span key={order.id} className="leading-none">
-                          {label}
-                        </span>
-                      );
-                    })}
-                  </div>
-                </div>
-              </Card>
                   );
-                })}
-                </div>
-              );
-            })()}
+                })()}
+              </div>
           </div>
 
           {/* Coluna MESAS*/}
@@ -412,91 +411,93 @@ export function Orders({ token }: OrdersProps) {
             <div className="mb-6 pb-4 border-b border-app-border">
               <h2 className="text-xl font-normal text-black mb-1">Mesas</h2>
             </div>
-            {(() => {
-              const mesaGroups = filteredGroups.filter((g) => g.key.startsWith("MESA_"));
-              const occupiedTables = new Map<number, GroupedOrders[]>();
-              mesaGroups.forEach((group) => {
-                if (group.table) {
-                  const existing = occupiedTables.get(group.table) || [];
-                  existing.push(group);
-                  occupiedTables.set(group.table, existing);
-                }
-              });
+            <div className="max-h-[calc(100vh-260px)] overflow-y-auto pr-2">
+              {(() => {
+                const mesaGroups = filteredGroups.filter((g) => g.key.startsWith("MESA_"));
+                const occupiedTables = new Map<number, GroupedOrders[]>();
+                mesaGroups.forEach((group) => {
+                  if (group.table) {
+                    const existing = occupiedTables.get(group.table) || [];
+                    existing.push(group);
+                    occupiedTables.set(group.table, existing);
+                  }
+                });
 
-              const allTables = Array.from({ length: 20 }, (_, i) => i + 1);
+                const allTables = Array.from({ length: 20 }, (_, i) => i + 1);
 
-              return (
-                <div className="flex flex-col gap-2.5">
-                  {allTables.map((tableNumber) => {
-                    const groups = occupiedTables.get(tableNumber) || [];
+                return (
+                  <div className="flex flex-col gap-2.5">
+                    {allTables.map((tableNumber) => {
+                      const groups = occupiedTables.get(tableNumber) || [];
 
-                    if (groups.length === 0) {
-                      return (
-                        <div
-                          key={`MESA_${tableNumber}`}
-                          className="relative transition-all duration-300"
-                        >
-                          <Card className="bg-app-card text-black tech-shadow tech-hover border-2 border-gray-200 p-2.5 flex items-center justify-between">
-                            <CardTitle className="text-sm font-normal tracking-tight">
-                              Mesa {tableNumber.toString().padStart(2, "0")}
-                            </CardTitle>
-                            <p className="text-xs text-gray-400">Livre</p>
-                          </Card>
-                        </div>
-                      );
-                    }
-
-                    return groups.map((group) => {
-                      const sortedGroupOrders = [...group.orders].sort((a, b) => {
-                        const aNew = !(a.viewed ?? false);
-                        const bNew = !(b.viewed ?? false);
-                        if (aNew && !bNew) return -1;
-                        if (!aNew && bNew) return 1;
-                        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-                      });
-
-                      return (
-                        <div
-                          key={group.key}
-                          className={cn(
-                            "cursor-pointer transition-all duration-300 rounded-lg p-[2px] bg-gradient-to-br from-cyan-400 via-cyan-300 to-cyan-500",
-                            group.hasNewOrders || group.hasInProduction || group.hasOpen ? "shadow-md" : ""
-                          )}
-                          onClick={() => {
-                            const firstOrderId = group.orders[0]?.id;
-                            if (firstOrderId) {
-                              setSelectedOrder(firstOrderId);
-                            }
-                          }}
-                        >
-                          <Card className="bg-app-card text-black tech-shadow tech-hover w-full p-2.5 flex items-center justify-between gap-3">
-                            <div className="flex flex-col gap-0.5">
+                      if (groups.length === 0) {
+                        return (
+                          <div
+                            key={`MESA_${tableNumber}`}
+                            className="relative transition-all duration-300"
+                          >
+                            <Card className="bg-app-card text-black tech-shadow tech-hover border-2 border-gray-200 p-2.5 flex items-center justify-between">
                               <CardTitle className="text-sm font-normal tracking-tight">
-                                {tableNumber.toString().padStart(2, "0")} - {formatPrice(group.total)}
+                                Mesa {tableNumber.toString().padStart(2, "0")}
                               </CardTitle>
-                            </div>
-                            <div className="text-xs font-normal text-brand-primary">
-                              {group.hasNewOrders ? "Novo pedido" : ""}
-                            </div>
-                            <div className="flex flex-col items-end gap-0.5 text-xs text-black">
-                              {sortedGroupOrders.map((order) => {
-                                const label = order.comanda || order.name || "";
-                                if (!label) return null;
-                                return (
-                                  <span key={order.id} className="leading-none">
-                                    {label}
-                                  </span>
-                                );
-                              })}
-                            </div>
-                          </Card>
-                        </div>
-                      );
-                    });
-                  })}
-                </div>
-              );
-            })()}
+                              <p className="text-xs text-gray-400">Livre</p>
+                            </Card>
+                          </div>
+                        );
+                      }
+
+                      return groups.map((group) => {
+                        const sortedGroupOrders = [...group.orders].sort((a, b) => {
+                          const aNew = !(a.viewed ?? false);
+                          const bNew = !(b.viewed ?? false);
+                          if (aNew && !bNew) return -1;
+                          if (!aNew && bNew) return 1;
+                          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+                        });
+
+                        return (
+                          <div
+                            key={group.key}
+                            className={cn(
+                              "cursor-pointer transition-all duration-300 rounded-lg p-[2px] bg-gradient-to-br from-cyan-400 via-cyan-300 to-cyan-500",
+                              group.hasNewOrders || group.hasInProduction || group.hasOpen ? "shadow-md" : ""
+                            )}
+                            onClick={() => {
+                              const firstOrderId = group.orders[0]?.id;
+                              if (firstOrderId) {
+                                setSelectedOrder(firstOrderId);
+                              }
+                            }}
+                          >
+                            <Card className="bg-app-card text-black tech-shadow tech-hover w-full p-2.5 grid grid-cols-3 items-center gap-3">
+                              <div className="flex flex-col gap-0.5 text-left">
+                                <CardTitle className="text-sm font-normal tracking-tight">
+                                  {tableNumber.toString().padStart(2, "0")} - {formatPrice(group.total)}
+                                </CardTitle>
+                              </div>
+                              <div className="text-xs font-normal text-brand-primary text-center">
+                                {group.hasNewOrders ? "Novo pedido" : ""}
+                              </div>
+                              <div className="flex flex-col items-end gap-0.5 text-xs text-black text-right">
+                                {sortedGroupOrders.map((order) => {
+                                  const label = order.comanda || order.name || "";
+                                  if (!label) return null;
+                                  return (
+                                    <span key={order.id} className="leading-none">
+                                      {label}
+                                    </span>
+                                  );
+                                })}
+                              </div>
+                            </Card>
+                          </div>
+                        );
+                      });
+                    })}
+                  </div>
+                );
+              })()}
+            </div>
           </div>
         </div>
       )}
