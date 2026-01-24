@@ -245,15 +245,7 @@ export function Orders({ token }: OrdersProps) {
         </div>
 
         <div className="flex gap-2">
-          <OrderForm
-            occupiedTables={Array.from(
-              new Set(
-                orders
-                  .filter((order) => order.orderType === "MESA" && order.table)
-                  .map((order) => order.table as number)
-              )
-            )}
-          />
+          <OrderForm triggerLabel="Nova comanda" defaultType="MESA" />
           <Button
             className="bg-brand-primary text-black hover:bg-brand-primary"
             onClick={() => fetchOrders(true)}

@@ -24,13 +24,14 @@ import { useRouter } from "next/navigation";
 import { orderEventHelpers } from "@/lib/order-events";
 
 interface OrderFormProps {
-  occupiedTables?: number[];
+  triggerLabel?: string;
+  defaultType?: "MESA" | "BALCAO";
 }
 
-export function OrderForm({ occupiedTables = [] }: OrderFormProps) {
+export function OrderForm({ triggerLabel = "Novo pedido", defaultType = "MESA" }: OrderFormProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [orderType, setOrderType] = useState<"MESA" | "BALCAO">("MESA");
+  const [orderType, setOrderType] = useState<"MESA" | "BALCAO">(defaultType);
   const [table, setTable] = useState("");
   const [name, setName] = useState("");
   const [comanda, setComanda] = useState("");
@@ -73,11 +74,25 @@ export function OrderForm({ occupiedTables = [] }: OrderFormProps) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        setOpen(nextOpen);
+        if (nextOpen) {
+          setOrderType(defaultType);
+          if (defaultType === "MESA") {
+            setName("");
+          } else {
+            setTable("");
+            setComanda("");
+          }
+        }
+      }}
+    >
       <DialogTrigger asChild>
         <Button className="bg-brand-primary hover:bg-brand-primary/90 text-black tech-shadow tech-hover font-normal">
           <Plus className="h-5 w-5 mr-2 icon-3d" />
-          Novo pedido
+          {triggerLabel}
         </Button>
       </DialogTrigger>
 
@@ -138,19 +153,15 @@ export function OrderForm({ occupiedTables = [] }: OrderFormProps) {
                   <SelectValue placeholder="Selecione a mesa" />
                 </SelectTrigger>
                 <SelectContent className="bg-app-card border-app-border max-h-[200px] overflow-y-auto">
-                  {Array.from({ length: 20 }, (_, i) => i + 1).map((tableNumber) => {
-                    const isOccupied = occupiedTables.includes(tableNumber);
-                    return (
-                      <SelectItem
-                        key={tableNumber}
-                        value={tableNumber.toString()}
-                        disabled={isOccupied}
-                        className="text-black hover:bg-transparent cursor-pointer"
-                      >
-                        Mesa {tableNumber.toString().padStart(2, "0")}
-                      </SelectItem>
-                    );
-                  })}
+                  {Array.from({ length: 20 }, (_, i) => i + 1).map((tableNumber) => (
+                    <SelectItem
+                      key={tableNumber}
+                      value={tableNumber.toString()}
+                      className="text-black hover:bg-transparent cursor-pointer"
+                    >
+                      Mesa {tableNumber.toString().padStart(2, "0")}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <p className="text-xs text-gray-500 mt-1">
