@@ -12,6 +12,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { OrderForm } from "@/components/dashboard/order-form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -710,6 +711,9 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
                     >
                       Salvar
                     </Button>
+                  </div>
+                  <div className="mt-3">
+                    <OrderForm triggerLabel="Nova comanda" defaultType="MESA" defaultTable={order.table} />
                   </div>
                 </div>
               )}

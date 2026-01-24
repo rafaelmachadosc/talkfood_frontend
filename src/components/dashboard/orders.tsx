@@ -25,6 +25,7 @@ interface GroupedOrders {
   key: string; // "MESA_5" ou "BALCAO"
   table?: number;
   comanda?: string;
+  comandas?: string[];
   name?: string;
   phone?: string;
   orders: Order[];
@@ -158,8 +159,7 @@ export function Orders({ token }: OrdersProps) {
       // Criar chave única: mesa agrupa por número, balcão agrupa por ID (cada pedido é único)
       let key: string;
       if (order.orderType === "MESA" && order.table) {
-        const comanda = order.comanda || order.commandNumber ? String(order.comanda || order.commandNumber).trim() : "";
-        key = comanda ? `MESA_${order.table}_COMANDA_${comanda}` : `MESA_${order.table}`;
+        key = `MESA_${order.table}`;
       } else {
         // Para BALCÃO, cada pedido é único - usar ID do pedido como chave
         // Isso permite ter múltiplos pedidos de balcão separados
@@ -171,6 +171,7 @@ export function Orders({ token }: OrdersProps) {
           key,
           table: order.table,
           comanda: order.comanda || order.commandNumber ? String(order.comanda || order.commandNumber).trim() : undefined,
+          comandas: [],
           name: order.name, // Nome do cliente para pedidos de balcão
           phone: order.phone, // Telefone do cliente
           orders: [],
@@ -183,6 +184,16 @@ export function Orders({ token }: OrdersProps) {
 
       // Adicionar pedido ao grupo
       grouped[key].orders.push(order);
+
+      if (order.orderType === "MESA") {
+        const comandaValue = order.comanda || order.commandNumber ? String(order.comanda || order.commandNumber).trim() : "";
+        if (comandaValue) {
+          if (!grouped[key].comandas) grouped[key].comandas = [];
+          if (!grouped[key].comandas!.includes(comandaValue)) {
+            grouped[key].comandas!.push(comandaValue);
+          }
+        }
+      }
       
       // Atualizar flags do grupo
       const isNew = !(order.viewed ?? false);
@@ -245,6 +256,7 @@ export function Orders({ token }: OrdersProps) {
         </div>
 
         <div className="flex gap-2">
+          <OrderForm triggerLabel="Novo pedido" defaultType="BALCAO" />
           <OrderForm triggerLabel="Nova comanda" defaultType="MESA" />
           <Button
             className="bg-brand-primary text-black hover:bg-brand-primary"
@@ -496,15 +508,16 @@ export function Orders({ token }: OrdersProps) {
                                 {group.hasNewOrders ? "Novo pedido" : ""}
                               </div>
                               <div className="flex flex-col items-end gap-0.5 text-xs text-black text-right">
-                              {sortedGroupOrders.map((order) => {
-                                const label = order.comanda || order.commandNumber || order.name || "";
-                                  if (!label) return null;
-                                  return (
-                                    <span key={order.id} className="leading-none">
-                                      {label}
-                                    </span>
-                                  );
-                                })}
+                              {(group.comandas && group.comandas.length > 0
+                                ? group.comandas
+                                : sortedGroupOrders
+                                    .map((order) => order.comanda || order.commandNumber || "")
+                                    .filter((label) => label && label.trim() !== "")
+                              ).map((label) => (
+                                <span key={label} className="leading-none">
+                                  {label}
+                                </span>
+                              ))}
                               </div>
                             </div>
                           </Card>

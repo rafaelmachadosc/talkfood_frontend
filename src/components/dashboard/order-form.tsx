@@ -26,9 +26,10 @@ import { orderEventHelpers } from "@/lib/order-events";
 interface OrderFormProps {
   triggerLabel?: string;
   defaultType?: "MESA" | "BALCAO";
+  defaultTable?: number;
 }
 
-export function OrderForm({ triggerLabel = "Novo pedido", defaultType = "MESA" }: OrderFormProps) {
+export function OrderForm({ triggerLabel = "Novo pedido", defaultType = "MESA", defaultTable }: OrderFormProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [orderType, setOrderType] = useState<"MESA" | "BALCAO">(defaultType);
@@ -82,6 +83,7 @@ export function OrderForm({ triggerLabel = "Novo pedido", defaultType = "MESA" }
           setOrderType(defaultType);
           if (defaultType === "MESA") {
             setName("");
+            setTable(defaultTable ? String(defaultTable) : "");
           } else {
             setTable("");
             setComanda("");
