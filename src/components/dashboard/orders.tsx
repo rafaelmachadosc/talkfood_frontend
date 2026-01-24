@@ -370,7 +370,7 @@ export function Orders({ token }: OrdersProps) {
                         order: group.hasNewOrders ? -1 : 0,
                       }}
                     >
-                      <div className="p-3.5 min-h-[64px] grid grid-cols-3 items-center gap-3">
+                      <div className="p-3.5 h-[72px] grid grid-cols-3 items-center gap-3">
                         <div className="flex flex-col gap-0.5 text-left">
                           <CardTitle className="text-sm font-normal tracking-tight">
                             Balcão - {formatPrice(group.total)}
@@ -431,7 +431,7 @@ export function Orders({ token }: OrdersProps) {
                           className="relative transition-all duration-300"
                         >
                           <Card className="bg-gray-50 text-black tech-shadow tech-hover border-2 border-gray-200 w-full p-0">
-                            <div className="p-3.5 min-h-[64px] grid grid-cols-3 items-center gap-3">
+                            <div className="p-3.5 h-[72px] grid grid-cols-3 items-center gap-3">
                               <CardTitle className="text-sm font-normal tracking-tight text-left">
                                 Mesa {tableNumber.toString().padStart(2, "0")}
                               </CardTitle>
@@ -467,7 +467,7 @@ export function Orders({ token }: OrdersProps) {
                           }}
                         >
                           <Card className="bg-green-50 text-black tech-shadow tech-hover w-full border-2 border-green-400 p-0">
-                            <div className="p-3.5 min-h-[64px] grid grid-cols-3 items-center gap-3">
+                            <div className="p-3.5 h-[72px] grid grid-cols-3 items-center gap-3">
                               <div className="flex flex-col gap-0.5 text-left">
                                 <CardTitle className="text-sm font-normal tracking-tight">
                                   {tableNumber.toString().padStart(2, "0")} - {formatPrice(group.total)}
