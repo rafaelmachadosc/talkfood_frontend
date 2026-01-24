@@ -283,3 +283,46 @@ export async function receiveOrderAction(
     return { success: false, error: errorMessage };
   }
 }
+
+export async function receiveComandaAction(data: {
+  table: number;
+  comanda: string;
+  paymentMethod?: string;
+  receivedAmount?: number;
+}) {
+  try {
+    const token = await getToken();
+
+    if (!token) {
+      return { success: false, error: "Falha ao receber a comanda" };
+    }
+
+    if (!data.table || !data.comanda) {
+      return { success: false, error: "Mesa e comanda são obrigatórios" };
+    }
+
+    await api.post(
+      "/api/caixa/receive-comanda",
+      {
+        table: data.table,
+        comanda: data.comanda,
+        payment_method: data.paymentMethod || "DINHEIRO",
+        received_amount: data.receivedAmount ? Math.round(data.receivedAmount * 100) : undefined,
+      },
+      { token }
+    );
+
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/caixa");
+    revalidatePath("/dashboard/analytics");
+    revalidatePath("/dashboard/kitchen");
+
+    return { success: true, error: "" };
+  } catch (err) {
+    let errorMessage = "Falha ao receber a comanda";
+    if (err instanceof Error) {
+      errorMessage = err.message || errorMessage;
+    }
+    return { success: false, error: errorMessage };
+  }
+}

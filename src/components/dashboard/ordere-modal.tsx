@@ -22,7 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { formatPrice } from "@/lib/format";
-import { finishOrderAction, receiveOrderAction, updateOrderInfoAction } from "@/actions/orders";
+import { finishOrderAction, receiveComandaAction, receiveOrderAction, updateOrderInfoAction } from "@/actions/orders";
 import { useRouter } from "next/navigation";
 import { Plus, Minus } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -50,9 +50,11 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
   const [receivedAmount, setReceivedAmount] = useState(""); // Valor formatado (R$ 15,00)
   const [paymentMethod, setPaymentMethod] = useState<string>("DINHEIRO");
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+  const initialSelectionRef = useRef<string | null>(null);
   const [partialPaidCents, setPartialPaidCents] = useState(0);
   const [receiveWarning, setReceiveWarning] = useState("");
   const [canCloseReceive, setCanCloseReceive] = useState(true);
+  const [receivingComanda, setReceivingComanda] = useState(false);
   const router = useRouter();
   const productSearchRef = useRef<HTMLDivElement | null>(null);
   const adicionaisSearchRef = useRef<HTMLDivElement | null>(null);
@@ -172,6 +174,7 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
     // Limpar estado de loading/receiving
     setLoading(false);
     setReceiving(false);
+    initialSelectionRef.current = null;
   }, [orderId]);
 
   useEffect(() => {
@@ -215,6 +218,12 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
 
     if (!order.draft) {
       setSelectedItems(new Set());
+      return;
+    }
+
+    if (order.items && order.items.length > 0 && initialSelectionRef.current !== order.id) {
+      setSelectedItems(new Set(order.items.map((item) => item.id)));
+      initialSelectionRef.current = order.id;
     }
   }, [order, orderId]);
 
@@ -501,6 +510,13 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
     orderEventHelpers.notifyOrderUpdated();
   };
 
+  const handleComandaSubmit = async () => {
+    if (!order) return;
+    const currentValue = order.comanda ? String(order.comanda).trim() : "";
+    if (comandaValue.trim() === currentValue) return;
+    await handleSaveComanda();
+  };
+
   const triggerReceiveWarning = () => {
     setReceiveWarning(
       "Deseja realmente fechar? Se fechar perderá o processo de pagamento feito até o momento e precisará iniciar novamente."
@@ -604,6 +620,39 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
     }
   };
 
+  const handleReceiveComanda = async () => {
+    if (!order || !order.table) return;
+    const comanda = (order.comanda || comandaValue || "").toString().trim();
+    if (!comanda) {
+      alert("Informe a comanda antes de receber.");
+      return;
+    }
+    setReceivingComanda(true);
+    try {
+      const received = paymentMethod === "DINHEIRO"
+        ? convertBRLToReais(receivedAmount)
+        : undefined;
+      const result = await receiveComandaAction({
+        table: order.table,
+        comanda,
+        paymentMethod,
+        receivedAmount: received,
+      });
+      if (!result.success) {
+        alert(result.error);
+        return;
+      }
+      setShowReceive(false);
+      setReceivedAmount("");
+      setPaymentMethod("DINHEIRO");
+      setPartialPaidCents(0);
+      orderEventHelpers.notifyOrderUpdated();
+      await onClose();
+    } finally {
+      setReceivingComanda(false);
+    }
+  };
+
   return (
     <Dialog open={orderId !== null} onOpenChange={() => onClose()}>
       <DialogContent className="p-0 bg-app-card text-black max-w-2xl max-h-[90vh] flex flex-col">
@@ -628,8 +677,8 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
                 <p className="text-sm text-gray-600 mb-1">Modalidade</p>
                 <p className="text-lg font-normal">
                   {order.orderType === "MESA" 
-                    ? `Pedido na Mesa ${order.table ? order.table : ""}` 
-                    : "Pedido no Balcão"}
+                    ? `Pedido na Mesa ${order.table ? order.table : ""}${(order.comanda || comandaValue) ? ` - ${(order.comanda || comandaValue).toString().trim()}` : ""}` 
+                    : `Pedido no Balcão${order.name ? ` - ${order.name}` : ""}`}
                 </p>
               </div>
               {order.orderType === "MESA" && (
@@ -641,6 +690,13 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
                       onChange={(e) => setComandaValue(e.target.value)}
                       placeholder="Digite o nome ou comanda"
                       className="border-app-border bg-white text-black"
+                      onBlur={handleComandaSubmit}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleComandaSubmit();
+                        }
+                      }}
                     />
                     <Button
                       type="button"
@@ -1302,6 +1358,18 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
               >
                 Cancelar
               </Button>
+              {order?.orderType === "MESA" && (order?.comanda || comandaValue) && (
+                <Button
+                  onClick={handleReceiveComanda}
+                  disabled={
+                    receivingComanda ||
+                    (paymentMethod === "DINHEIRO" && !receivedAmount)
+                  }
+                  className="flex-1 bg-brand-primary hover:bg-brand-primary/90 text-black tech-shadow tech-hover font-normal"
+                >
+                  {receivingComanda ? "Recebendo..." : "Receber Comanda"}
+                </Button>
+              )}
               <Button
                 onClick={handleReceiveOrder}
                 disabled={receiving || (paymentMethod === "DINHEIRO" && !receivedAmount)}

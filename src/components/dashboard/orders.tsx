@@ -222,17 +222,16 @@ export function Orders({ token }: OrdersProps) {
     return groupedArray;
   };
 
-  const filterGroupByTerm = (group: GroupedOrders, term: string) => {
+  const filterGroupByTerm = (group: GroupedOrders, term: string, type: "MESA" | "BALCAO") => {
     if (!term.trim()) return true;
     const normalized = term.trim().toLowerCase();
-    const tableText = group.table ? String(group.table) : "";
+    if (type === "MESA") {
+      const tableText = group.table ? String(group.table) : "";
+      return tableText.startsWith(normalized);
+    }
     const comandaText = group.comanda ? String(group.comanda) : "";
     const nameText = group.name ? group.name.toLowerCase() : "";
-    return (
-      tableText.includes(normalized) ||
-      comandaText.toLowerCase().includes(normalized) ||
-      nameText.includes(normalized)
-    );
+    return comandaText.toLowerCase().includes(normalized) || nameText.includes(normalized);
   };
 
   return (
@@ -343,7 +342,7 @@ export function Orders({ token }: OrdersProps) {
               {(() => {
                 const balcaoGroups = groupOrdersByTable(orders)
                   .filter((g) => g.key.startsWith("BALCAO_"))
-                  .filter((g) => filterGroupByTerm(g, searchBalcao));
+                  .filter((g) => filterGroupByTerm(g, searchBalcao, "BALCAO"));
                 
                 return balcaoGroups.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-12 bg-gray-50/50 rounded-lg border-2 border-dashed border-app-border">
@@ -422,7 +421,7 @@ export function Orders({ token }: OrdersProps) {
               {(() => {
                 const mesaGroups = groupOrdersByTable(orders)
                   .filter((g) => g.key.startsWith("MESA_"))
-                  .filter((g) => filterGroupByTerm(g, searchMesa));
+                  .filter((g) => filterGroupByTerm(g, searchMesa, "MESA"));
                 const occupiedTables = new Map<number, GroupedOrders[]>();
                 mesaGroups.forEach((group) => {
                   if (group.table) {
@@ -448,7 +447,9 @@ export function Orders({ token }: OrdersProps) {
                           <Card className="bg-gray-50 text-black tech-shadow tech-hover border-2 border-gray-200 w-full h-[72px] p-0">
                             <div className="p-3.5 h-full grid grid-cols-3 items-center gap-3">
                               <CardTitle className="text-sm font-normal tracking-tight text-left">
-                                Mesa {tableNumber.toString().padStart(2, "0")}
+                                <span className="font-semibold">
+                                  {tableNumber.toString().padStart(2, "0")}
+                                </span>
                               </CardTitle>
                               <div className="text-xs font-normal text-brand-primary text-center"></div>
                               <p className="text-xs text-gray-400 text-right">Livre</p>
@@ -484,9 +485,12 @@ export function Orders({ token }: OrdersProps) {
                           <Card className="bg-green-50 text-black tech-shadow tech-hover w-full border-2 border-green-400 h-[72px] p-0">
                             <div className="p-3.5 h-full grid grid-cols-3 items-center gap-3">
                               <div className="flex flex-col gap-0.5 text-left">
-                                <CardTitle className="text-sm font-normal tracking-tight">
-                                  {tableNumber.toString().padStart(2, "0")} - {formatPrice(group.total)}
-                                </CardTitle>
+                              <CardTitle className="text-sm font-normal tracking-tight">
+                                <span className="font-semibold">
+                                  {tableNumber.toString().padStart(2, "0")}
+                                </span>{" "}
+                                - {formatPrice(group.total)}
+                              </CardTitle>
                               </div>
                               <div className="text-xs font-normal text-brand-primary text-center">
                                 {group.hasNewOrders ? "Novo pedido" : ""}
