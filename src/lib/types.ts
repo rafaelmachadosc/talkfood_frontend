@@ -43,6 +43,7 @@ export interface Order {
   table?: number;
   name?: string;
   phone?: string;
+  comanda?: string;
   orderType: "MESA" | "BALCAO";
   status: boolean; // false = produção , true = finalizado
   draft: boolean; // true = rascunho, false = enviar para producao

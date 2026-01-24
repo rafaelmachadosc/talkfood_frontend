@@ -29,6 +29,7 @@ export function OrderForm() {
   const [orderType, setOrderType] = useState<"MESA" | "BALCAO">("MESA");
   const [table, setTable] = useState("");
   const [name, setName] = useState("");
+  const [comanda, setComanda] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   async function handleCreateOrder(e: React.FormEvent<HTMLFormElement>) {
@@ -40,6 +41,7 @@ export function OrderForm() {
       table: orderType === "MESA" ? Number(table) : undefined,
       name: orderType === "BALCAO" ? name : undefined,
       phone: undefined,
+      comanda: orderType === "MESA" ? comanda : undefined,
     });
 
     setIsLoading(false);
@@ -49,6 +51,7 @@ export function OrderForm() {
       setOrderType("MESA");
       setTable("");
       setName("");
+      setComanda("");
       
       // Notificar componentes sobre novo pedido criado
       if (orderType === "MESA") {
@@ -147,6 +150,22 @@ export function OrderForm() {
               </p>
             </div>
           )}
+
+        {orderType === "MESA" && (
+          <div>
+            <Label htmlFor="comanda" className="mb-2">
+              Comanda
+            </Label>
+            <Input
+              id="comanda"
+              name="comanda"
+              placeholder="Digite o número da comanda..."
+              className="border-app-border bg-white text-black"
+              value={comanda}
+              onChange={(e) => setComanda(e.target.value)}
+            />
+          </div>
+        )}
 
           {orderType === "BALCAO" && (
             <div>

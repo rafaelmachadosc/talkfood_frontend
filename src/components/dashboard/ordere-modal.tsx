@@ -1,7 +1,7 @@
 import { apiClient } from "@/lib/api";
 import { getApiAdapter } from "@/core/http/api-adapter";
 import { Order, Product } from "@/lib/types";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { orderEventHelpers } from "@/lib/order-events";
 import {
   Dialog,
@@ -22,7 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { formatPrice } from "@/lib/format";
-import { finishOrderAction, receiveOrderAction } from "@/actions/orders";
+import { finishOrderAction, receiveOrderAction, updateOrderInfoAction } from "@/actions/orders";
 import { useRouter } from "next/navigation";
 import { Plus, Minus } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -46,10 +46,16 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
   const [adicionaisSearch, setAdicionaisSearch] = useState("");
   const [selectedAdicionais, setSelectedAdicionais] = useState<Set<string>>(new Set());
   const [quantity, setQuantity] = useState(1);
+  const [comandaValue, setComandaValue] = useState("");
   const [receivedAmount, setReceivedAmount] = useState(""); // Valor formatado (R$ 15,00)
   const [paymentMethod, setPaymentMethod] = useState<string>("DINHEIRO");
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+  const [partialPaidCents, setPartialPaidCents] = useState(0);
+  const [receiveWarning, setReceiveWarning] = useState("");
+  const [canCloseReceive, setCanCloseReceive] = useState(true);
   const router = useRouter();
+  const productSearchRef = useRef<HTMLDivElement | null>(null);
+  const adicionaisSearchRef = useRef<HTMLDivElement | null>(null);
 
   // Função para formatar valor monetário como no campo de preço do produto (R$ 1.500,00)
   function formatToBrl(value: string): string {
@@ -107,6 +113,7 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
       // Verificar se a resposta corresponde ao orderId atual (evitar race condition)
       if (response && response.id === orderId) {
         setOrder(response);
+        setComandaValue(response.comanda ? String(response.comanda) : "");
         if (showLoading) {
           setLoading(false);
         }
@@ -154,6 +161,10 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
     setShowReceive(false);
     setReceivedAmount("");
     setPaymentMethod("DINHEIRO");
+    setComandaValue("");
+    setPartialPaidCents(0);
+    setReceiveWarning("");
+    setCanCloseReceive(true);
     
     // Limpar seleção de itens
     setSelectedItems(new Set());
@@ -468,14 +479,35 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
     const totalInCents = order.draft && selectedItems.size > 0 && selectedItems.size < (order.items?.length || 0)
       ? calculateSelectedTotal()
       : calculateTotal();
+    const remainingCents = Math.max(0, totalInCents - partialPaidCents);
     
     // Converter total de centavos para reais
-    const total = totalInCents / 100;
+    const total = remainingCents / 100;
     
     // Calcular troco: valor recebido - total do pedido
     const change = received - total;
     
     return change >= 0 ? change : change; // Retornar negativo se insuficiente
+  };
+
+  const handleSaveComanda = async () => {
+    if (!orderId) return;
+    const result = await updateOrderInfoAction(orderId, { comanda: comandaValue.trim() });
+    if (!result.success) {
+      alert(result.error);
+      return;
+    }
+    await fetchOrder(false);
+    orderEventHelpers.notifyOrderUpdated();
+  };
+
+  const triggerReceiveWarning = () => {
+    setReceiveWarning(
+      "Deseja realmente fechar? Se fechar perderá o processo de pagamento feito até o momento e precisará iniciar novamente."
+    );
+    setCanCloseReceive(false);
+    setTimeout(() => setCanCloseReceive(true), 5000);
+    setTimeout(() => setReceiveWarning(""), 10000);
   };
 
   const handleReceiveOrder = async () => {
@@ -499,7 +531,8 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
       ? calculateSelectedTotal()
       : calculateTotal();
     
-    const total = selectedTotal / 100;
+    const remainingCents = Math.max(0, selectedTotal - partialPaidCents);
+    const total = remainingCents / 100;
     const received = paymentMethod === "DINHEIRO" 
       ? convertBRLToReais(receivedAmount)
       : total;
@@ -542,6 +575,8 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
       orderEventHelpers.notifyOrderReceived();
 
       if (isPartial) {
+        const receivedCents = Math.min(remainingCents, Math.round(received * 100));
+        setPartialPaidCents((prev) => prev + receivedCents);
         setOrder((current) => {
           if (!current?.items) return current;
           const remainingItems = current.items.filter((item) => !selectedItems.has(item.id));
@@ -597,6 +632,28 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
                     : "Pedido no Balcão"}
                 </p>
               </div>
+              {order.orderType === "MESA" && (
+                <div>
+                  <p className="text-sm text-gray-600 mb-1">Comanda</p>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      value={comandaValue}
+                      onChange={(e) => setComandaValue(e.target.value)}
+                      placeholder="Digite a comanda..."
+                      className="border-app-border bg-white text-black"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleSaveComanda}
+                      className="border-app-border text-black"
+                      disabled={comandaValue.trim() === (order.comanda ? String(order.comanda) : "")}
+                    >
+                      Salvar
+                    </Button>
+                  </div>
+                </div>
+              )}
               {order.name && (
                 <div>
                   <p className="text-sm text-gray-600 mb-1">Cliente</p>
@@ -628,7 +685,7 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
             </div>
 
             {/* Itens do pedido */}
-            <div>
+            <div ref={adicionaisSearchRef}>
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-lg font-normal">Itens do pedido</h3>
                 {!order.status && !isKitchen && (
@@ -822,10 +879,27 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-6 mt-4">
-            <div>
-              <Label htmlFor="product-search" className="mb-2">
-                Produto
-              </Label>
+            <div ref={productSearchRef}>
+              <div className="flex items-center justify-between mb-2">
+                <Label htmlFor="product-search">
+                  Produto
+                </Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="border-app-border text-black"
+                  onClick={() => {
+                    if (productSearch.length < 2) return;
+                    const toSelect = products
+                      .filter(p => !p.disabled && p.name.toLowerCase().includes(productSearch.toLowerCase()))
+                      .map(p => p.id);
+                    setSelectedProducts(new Set([...selectedProducts, ...toSelect]));
+                  }}
+                >
+                  Selecionar tudo
+                </Button>
+              </div>
               <Input
                 id="product-search"
                 type="text"
@@ -835,13 +909,22 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
                 onChange={(e) => {
                   const value = e.target.value;
                   setProductSearch(value);
-                  if (value.length < 2) {
-                    setSelectedProducts(new Set());
-                  }
+                }}
+                onBlur={() => {
+                  setTimeout(() => {
+                    const active = document.activeElement as HTMLElement | null;
+                    if (productSearchRef.current && active && productSearchRef.current.contains(active)) {
+                      return;
+                    }
+                    setProductSearch("");
+                  }, 0);
                 }}
               />
               {productSearch.length >= 2 && (
-                <div className="mt-2 border border-app-border rounded-lg max-h-48 overflow-y-auto bg-white">
+                <div
+                  className="mt-2 border border-app-border rounded-lg max-h-48 overflow-y-auto bg-white"
+                  onMouseDown={(e) => e.preventDefault()}
+                >
                   {products
                     .filter(p => !p.disabled && p.name.toLowerCase().includes(productSearch.toLowerCase()))
                     .map((product) => {
@@ -934,9 +1017,27 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
             </div>
 
             <div>
-              <Label htmlFor="adicionais-search" className="mb-2">
-                Adicionais
-              </Label>
+              <div className="flex items-center justify-between mb-2">
+                <Label htmlFor="adicionais-search">
+                  Adicionais
+                </Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="border-app-border text-black"
+                  onClick={() => {
+                    if (adicionaisSearch.length < 2) return;
+                    const toSelect = products
+                      .filter(p => !p.disabled && String(p.category || "").toLowerCase() === "adicionais")
+                      .filter(p => p.name.toLowerCase().includes(adicionaisSearch.toLowerCase()))
+                      .map(p => p.id);
+                    setSelectedAdicionais(new Set([...selectedAdicionais, ...toSelect]));
+                  }}
+                >
+                  Selecionar tudo
+                </Button>
+              </div>
               <Input
                 id="adicionais-search"
                 type="text"
@@ -946,9 +1047,15 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
                 onChange={(e) => {
                   const value = e.target.value;
                   setAdicionaisSearch(value);
-                  if (value.length < 2) {
-                    setSelectedAdicionais(new Set());
-                  }
+                }}
+                onBlur={() => {
+                  setTimeout(() => {
+                    const active = document.activeElement as HTMLElement | null;
+                    if (adicionaisSearchRef.current && active && adicionaisSearchRef.current.contains(active)) {
+                      return;
+                    }
+                    setAdicionaisSearch("");
+                  }, 0);
                 }}
               />
               {adicionaisSearch.length >= 2 && (() => {
@@ -958,7 +1065,10 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
                   p.name.toLowerCase().includes(adicionaisSearch.toLowerCase())
                 );
                 return (
-                  <div className="mt-2 border border-app-border rounded-lg max-h-48 overflow-y-auto bg-white">
+                  <div
+                    className="mt-2 border border-app-border rounded-lg max-h-48 overflow-y-auto bg-white"
+                    onMouseDown={(e) => e.preventDefault()}
+                  >
                     {adicionaisProducts.map((product) => {
                       const isSelected = selectedAdicionais.has(product.id);
                       return (
@@ -1063,7 +1173,23 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
       </Dialog>
 
       {/* Dialog: Receber Pedido */}
-      <Dialog open={showReceive} onOpenChange={setShowReceive}>
+      <Dialog
+        open={showReceive}
+        onOpenChange={(open: boolean) => {
+          if (open) {
+            setShowReceive(true);
+            return;
+          }
+          if (canCloseReceive) {
+            setShowReceive(false);
+            setReceivedAmount("");
+            setPaymentMethod("DINHEIRO");
+            setPartialPaidCents(0);
+            return;
+          }
+          triggerReceiveWarning();
+        }}
+      >
         <DialogContent className="bg-app-card border-app-border text-black max-w-md">
           <DialogHeader>
             <DialogTitle className="text-xl font-normal tracking-tight">
@@ -1144,6 +1270,11 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
                 )}
               </div>
             )}
+            {receiveWarning && (
+              <p className="text-sm text-orange-600">
+                {receiveWarning}
+              </p>
+            )}
             {paymentMethod !== "DINHEIRO" && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                 <p className="text-sm text-blue-700">
@@ -1158,9 +1289,14 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
               <Button
                 variant="outline"
                 onClick={() => {
+                  if (!canCloseReceive) {
+                    triggerReceiveWarning();
+                    return;
+                  }
                   setShowReceive(false);
                   setReceivedAmount("");
                   setPaymentMethod("DINHEIRO");
+                  setPartialPaidCents(0);
                 }}
                 className="flex-1 border-app-border hover:bg-transparent text-black"
               >

@@ -11,6 +11,7 @@ export async function createOrderAction(data: {
   table?: number;
   name?: string;
   phone?: string;
+  comanda?: string;
 }) {
   try {
     const token = await getToken();
@@ -32,6 +33,9 @@ export async function createOrderAction(data: {
         return { success: false, error: "Número da mesa é obrigatório" };
       }
       payload.table = Number(data.table); // Garantir que é número
+      if (data.comanda && data.comanda.trim() !== "") {
+        payload.comanda = data.comanda.trim();
+      }
     } else if (data.orderType === "BALCAO") {
       // Para BALCÃO, name é obrigatório
       if (!data.name || data.name.trim() === "") {
@@ -67,6 +71,40 @@ export async function createOrderAction(data: {
     }
 
     return { success: false, error: "Erro ao criar pedido" };
+  }
+}
+
+export async function updateOrderInfoAction(orderId: string, data: { comanda?: string }) {
+  try {
+    const token = await getToken();
+
+    if (!token) {
+      return { success: false, error: "Erro ao atualizar pedido" };
+    }
+
+    if (!orderId) {
+      return { success: false, error: "Pedido inválido" };
+    }
+
+    const payload: Record<string, unknown> = { order_id: orderId };
+    if (data.comanda !== undefined) {
+      payload.comanda = data.comanda;
+    }
+
+    try {
+      await api.put("/api/order/update", payload, { token });
+    } catch {
+      await api.put("/api/order", payload, { token });
+    }
+
+    revalidatePath("/dashboard");
+    return { success: true, error: "" };
+  } catch (error) {
+    if (error instanceof Error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: false, error: "Erro ao atualizar pedido" };
   }
 }
 
