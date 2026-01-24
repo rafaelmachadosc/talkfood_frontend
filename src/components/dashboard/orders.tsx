@@ -256,7 +256,6 @@ export function Orders({ token }: OrdersProps) {
         </div>
 
         <div className="flex gap-2">
-          <OrderForm triggerLabel="Novo pedido" defaultType="BALCAO" />
           <OrderForm triggerLabel="Nova comanda" defaultType="MESA" />
           <Button
             className="bg-brand-primary text-black hover:bg-brand-primary"
@@ -479,6 +478,21 @@ export function Orders({ token }: OrdersProps) {
                           if (!aNew && bNew) return 1;
                           return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
                         });
+                        const comandaEntries = Array.from(
+                          new Map(
+                            sortedGroupOrders
+                              .map((order) => ({
+                                label: (order.comanda || order.commandNumber || "").trim(),
+                                orderId: order.id,
+                                total: order.items?.reduce(
+                                  (sum, item) => sum + item.product.price * item.amount,
+                                  0
+                                ) || 0,
+                              }))
+                              .filter((entry) => entry.label !== "")
+                              .map((entry) => [entry.label, entry])
+                          )
+                        ).map(([, entry]) => entry);
 
                       return (
                         <div
@@ -508,16 +522,19 @@ export function Orders({ token }: OrdersProps) {
                                 {group.hasNewOrders ? "Novo pedido" : ""}
                               </div>
                               <div className="flex flex-col items-end gap-0.5 text-xs text-black text-right">
-                              {(group.comandas && group.comandas.length > 0
-                                ? group.comandas
-                                : sortedGroupOrders
-                                    .map((order) => order.comanda || order.commandNumber || "")
-                                    .filter((label) => label && label.trim() !== "")
-                              ).map((label) => (
-                                <span key={label} className="leading-none">
-                                  {label}
-                                </span>
-                              ))}
+                                {comandaEntries.map((entry) => (
+                                  <button
+                                    key={entry.orderId}
+                                    type="button"
+                                    className="leading-none hover:underline"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedOrder(entry.orderId);
+                                    }}
+                                  >
+                                    {entry.label} ({formatPrice(entry.total)})
+                                  </button>
+                                ))}
                               </div>
                             </div>
                           </Card>
