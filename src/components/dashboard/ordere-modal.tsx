@@ -634,12 +634,12 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
               </div>
               {order.orderType === "MESA" && (
                 <div>
-                  <p className="text-sm text-gray-600 mb-1">Comanda</p>
+                  <p className="text-sm text-gray-600 mb-1">Nome ou comanda</p>
                   <div className="flex items-center gap-2">
                     <Input
                       value={comandaValue}
                       onChange={(e) => setComandaValue(e.target.value)}
-                      placeholder="Digite a comanda..."
+                      placeholder="Digite o nome ou comanda"
                       className="border-app-border bg-white text-black"
                     />
                     <Button
