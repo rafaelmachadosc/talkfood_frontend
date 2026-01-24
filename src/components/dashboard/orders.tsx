@@ -450,7 +450,6 @@ export function Orders({ token }: OrdersProps) {
                           return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
                         });
 
-                        return (
                       return (
                         <div
                           key={group.key}
