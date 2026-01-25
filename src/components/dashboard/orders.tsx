@@ -43,15 +43,22 @@ export function Orders({ token }: OrdersProps) {
   const [searchMesa, setSearchMesa] = useState("");
   const [searchBalcao, setSearchBalcao] = useState("");
 
+  const normalizeOrdersList = (data: unknown): Order[] => {
+    if (Array.isArray(data)) return data;
+    const maybeData = (data as { data?: unknown }).data;
+    if (Array.isArray(maybeData)) return maybeData;
+    return [];
+  };
+
   const safeFetchOrders = async (endpoint: string) => {
     try {
-      const response = await apiClient<Order[]>(endpoint, {
+      const response = await apiClient<Order[] | { data?: Order[] }>(endpoint, {
         method: "GET",
         cache: "no-store",
         token: token,
         silent404: true,
       });
-      return Array.isArray(response) ? response : [];
+      return normalizeOrdersList(response);
     } catch {
       return [];
     }

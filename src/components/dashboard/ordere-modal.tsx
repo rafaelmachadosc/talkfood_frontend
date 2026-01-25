@@ -102,6 +102,20 @@ export function OrderModal({
     };
   };
 
+  const normalizeOrdersList = (data: unknown): Order[] => {
+    if (Array.isArray(data)) return data;
+    const maybeData = (data as { data?: unknown }).data;
+    if (Array.isArray(maybeData)) return maybeData;
+    return [];
+  };
+
+  const normalizeProductsList = (data: unknown): Product[] => {
+    if (Array.isArray(data)) return data;
+    const maybeData = (data as { data?: unknown }).data;
+    if (Array.isArray(maybeData)) return maybeData as Product[];
+    return [];
+  };
+
   const fetchOrder = async (showLoading = true) => {
     if (!orderId) {
       setOrder(null);
@@ -215,17 +229,20 @@ export function OrderModal({
       }
 
       try {
-        const draftOrders = await apiClient<Order[]>("/api/orders?draft=true", {
+        const draftOrders = await apiClient<Order[] | { data?: Order[] }>("/api/orders?draft=true", {
           method: "GET",
           token: token,
           silent404: true,
         });
-        const nonDraftOrders = await apiClient<Order[]>("/api/orders?draft=false", {
+        const nonDraftOrders = await apiClient<Order[] | { data?: Order[] }>("/api/orders?draft=false", {
           method: "GET",
           token: token,
           silent404: true,
         });
-        const allOrders = [...(draftOrders || []), ...(nonDraftOrders || [])];
+        const allOrders = [
+          ...normalizeOrdersList(draftOrders),
+          ...normalizeOrdersList(nonDraftOrders),
+        ];
         const filtered = allOrders.filter(
           (item) => item.orderType === "MESA" && item.table === order.table && !item.status
         );
@@ -281,12 +298,12 @@ export function OrderModal({
       if (!orderId) return;
       
       try {
-        const productsData = await apiClient<Product[]>("/api/products", {
+        const productsData = await apiClient<Product[] | { data?: Product[] }>("/api/products", {
           method: "GET",
           token: token,
         });
 
-        const productsList = (productsData || []).sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
+        const productsList = normalizeProductsList(productsData).sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
         setProducts(productsList);
         
       } catch (err) {
