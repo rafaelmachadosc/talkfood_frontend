@@ -95,6 +95,13 @@ export function OrderModal({
     return parseFloat(cleanValue) || 0;
   }
 
+  const normalizeOrderItems = (data: Order): Order => {
+    return {
+      ...data,
+      items: Array.isArray(data.items) ? data.items : [],
+    };
+  };
+
   const fetchOrder = async (showLoading = true) => {
     if (!orderId) {
       setOrder(null);
@@ -124,7 +131,7 @@ export function OrderModal({
       // RETORNO DETALHE DA ORDER
       // Verificar se a resposta corresponde ao orderId atual (evitar race condition)
       if (response && response.id === orderId) {
-        setOrder(response);
+        setOrder(normalizeOrderItems(response));
         if (showLoading) {
           setLoading(false);
         }
@@ -222,7 +229,7 @@ export function OrderModal({
         const filtered = allOrders.filter(
           (item) => item.orderType === "MESA" && item.table === order.table && !item.status
         );
-        setTableOrders(filtered);
+        setTableOrders(filtered.map(normalizeOrderItems));
       } catch {
         setTableOrders([]);
       }
@@ -262,7 +269,7 @@ export function OrderModal({
       return;
     }
 
-    if (order.items && order.items.length > 0 && initialSelectionRef.current !== order.id) {
+    if (Array.isArray(order.items) && order.items.length > 0 && initialSelectionRef.current !== order.id) {
       setSelectedItems(new Set(order.items.map((item) => item.id)));
       initialSelectionRef.current = order.id;
     }
@@ -296,7 +303,7 @@ export function OrderModal({
 
   // Agrupa itens do mesmo produto e soma as quantidades
   const groupItemsByProduct = () => {
-    if (!order?.items) return [];
+    if (!Array.isArray(order?.items)) return [];
     
     const grouped = new Map<string, {
       product: typeof order.items[0]['product'];
@@ -327,7 +334,7 @@ export function OrderModal({
 
   // Calcula o total do pedido
   const calculateTotal = () => {
-    if (!order?.items) return 0;
+    if (!Array.isArray(order?.items)) return 0;
     return order.items.reduce((total, item) => {
       return total + item.product.price * item.amount;
     }, 0);
@@ -335,7 +342,7 @@ export function OrderModal({
 
   // Calcula o total dos itens selecionados
   const calculateSelectedTotal = () => {
-    if (!order?.items) return 0;
+    if (!Array.isArray(order?.items)) return 0;
     return order.items
       .filter((item) => selectedItems.has(item.id))
       .reduce((total, item) => {
@@ -927,6 +934,113 @@ export function OrderModal({
                   </div>
                 </div>
               )}
+
+              {showReceive && (
+                <div className="mt-4 border-t border-app-border pt-4 space-y-4 text-white">
+                  <div className="text-lg font-normal">Receber Pedido</div>
+                  <div className="bg-[#2B2A2A] rounded-lg p-4 border border-app-border">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-sm text-white/80">
+                        {order?.draft && selectedItems.size > 0 && selectedItems.size < (order.items?.length || 0)
+                          ? "Total Selecionado:"
+                          : "Total do Pedido:"}
+                      </span>
+                      <span className="text-lg font-normal text-white">
+                        {formatPrice(
+                          order?.draft && selectedItems.size > 0 && selectedItems.size < (order.items?.length || 0)
+                            ? calculateSelectedTotal()
+                            : Math.max(0, calculateTotal() - partialPaidCents)
+                        )}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="paymentMethod-panel" className="mb-2 text-white/80">
+                      Método de Pagamento *
+                    </Label>
+                    <Select value={paymentMethod} onValueChange={setPaymentMethod} required>
+                      <SelectTrigger className="border-app-border bg-[#2B2A2A] text-white">
+                        <SelectValue placeholder="Selecione o método" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-app-card border-app-border">
+                        <SelectItem value="DINHEIRO" className="text-black hover:bg-transparent cursor-pointer">
+                          Dinheiro
+                        </SelectItem>
+                        <SelectItem value="CARTAO_DEBITO" className="text-black hover:bg-transparent cursor-pointer">
+                          Cartão de Débito
+                        </SelectItem>
+                        <SelectItem value="CARTAO_CREDITO" className="text-black hover:bg-transparent cursor-pointer">
+                          Cartão de Crédito
+                        </SelectItem>
+                        <SelectItem value="PIX" className="text-black hover:bg-transparent cursor-pointer">
+                          PIX
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {paymentMethod === "DINHEIRO" && (
+                    <div>
+                      <Label htmlFor="receivedAmount-panel" className="mb-2 text-white/80">
+                        Valor Recebido (R$) *
+                      </Label>
+                      <Input
+                        id="receivedAmount-panel"
+                        type="text"
+                        placeholder="Ex: 35,00"
+                        className="border-app-border bg-[#2B2A2A] text-white"
+                        value={receivedAmount}
+                        onChange={(e) => {
+                          const formatted = formatToBrl(e.target.value);
+                          setReceivedAmount(formatted);
+                        }}
+                      />
+                      {receivedAmount && calculateChange() >= 0 && (
+                        <p className="text-sm text-green-400 mt-2 font-normal">
+                          Troco: {formatPrice(calculateChange() * 100)}
+                        </p>
+                      )}
+                      {receivedAmount && calculateChange() < 0 && (
+                        <p className="text-sm text-orange-400 mt-2">
+                          Recebimento parcial. Faltam: {formatPrice(Math.abs(calculateChange()) * 100)}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  {receiveWarning && (
+                    <p className="text-sm text-orange-400">
+                      {receiveWarning}
+                    </p>
+                  )}
+
+                  <div className="flex gap-3 pt-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        if (!canCloseReceive) {
+                          triggerReceiveWarning();
+                          return;
+                        }
+                        setShowReceive(false);
+                        setReceivedAmount("");
+                        setPaymentMethod("DINHEIRO");
+                        setPartialPaidCents(0);
+                      }}
+                      className="flex-1 border-app-border hover:bg-white/10 bg-transparent text-white"
+                    >
+                      Cancelar
+                    </Button>
+                    <Button
+                      onClick={handleReceiveOrder}
+                      disabled={receiving || (paymentMethod === "DINHEIRO" && !receivedAmount)}
+                      className="flex-1 bg-[#FFA500] hover:bg-[#FFA500]/90 text-black tech-shadow tech-hover font-normal"
+                    >
+                      {receiving ? "Recebendo..." : order?.draft && selectedItems.size > 0 && selectedItems.size < (order.items?.length || 0) ? "Receber Parcial" : "Confirmar Recebimento"}
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div className="flex items-center justify-center py-10 px-6 text-white/70">
@@ -1256,113 +1370,6 @@ export function OrderModal({
             </div>
           </DialogContent>
         </Dialog>
-
-        {mode === "panel" && showReceive && (
-          <div className="px-6 pb-6 pt-4 border-t border-app-border space-y-4 text-white">
-            <div className="text-lg font-normal">Receber Pedido</div>
-            <div className="bg-[#2B2A2A] rounded-lg p-4 border border-app-border">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm text-white/80">
-                  {order?.draft && selectedItems.size > 0 && selectedItems.size < (order.items?.length || 0)
-                    ? "Total Selecionado:"
-                    : "Total do Pedido:"}
-                </span>
-                <span className="text-lg font-normal text-white">
-                  {formatPrice(
-                    order?.draft && selectedItems.size > 0 && selectedItems.size < (order.items?.length || 0)
-                      ? calculateSelectedTotal()
-                      : Math.max(0, calculateTotal() - partialPaidCents)
-                  )}
-                </span>
-              </div>
-            </div>
-
-            <div>
-              <Label htmlFor="paymentMethod-panel" className="mb-2 text-white/80">
-                Método de Pagamento *
-              </Label>
-              <Select value={paymentMethod} onValueChange={setPaymentMethod} required>
-                <SelectTrigger className="border-app-border bg-[#2B2A2A] text-white">
-                  <SelectValue placeholder="Selecione o método" />
-                </SelectTrigger>
-                <SelectContent className="bg-app-card border-app-border">
-                  <SelectItem value="DINHEIRO" className="text-black hover:bg-transparent cursor-pointer">
-                    Dinheiro
-                  </SelectItem>
-                  <SelectItem value="CARTAO_DEBITO" className="text-black hover:bg-transparent cursor-pointer">
-                    Cartão de Débito
-                  </SelectItem>
-                  <SelectItem value="CARTAO_CREDITO" className="text-black hover:bg-transparent cursor-pointer">
-                    Cartão de Crédito
-                  </SelectItem>
-                  <SelectItem value="PIX" className="text-black hover:bg-transparent cursor-pointer">
-                    PIX
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {paymentMethod === "DINHEIRO" && (
-              <div>
-                <Label htmlFor="receivedAmount-panel" className="mb-2 text-white/80">
-                  Valor Recebido (R$) *
-                </Label>
-                <Input
-                  id="receivedAmount-panel"
-                  type="text"
-                  placeholder="Ex: 35,00"
-                  className="border-app-border bg-[#2B2A2A] text-white"
-                  value={receivedAmount}
-                  onChange={(e) => {
-                    const formatted = formatToBrl(e.target.value);
-                    setReceivedAmount(formatted);
-                  }}
-                />
-                {receivedAmount && calculateChange() >= 0 && (
-                  <p className="text-sm text-green-400 mt-2 font-normal">
-                    Troco: {formatPrice(calculateChange() * 100)}
-                  </p>
-                )}
-                {receivedAmount && calculateChange() < 0 && (
-                  <p className="text-sm text-orange-400 mt-2">
-                    Recebimento parcial. Faltam: {formatPrice(Math.abs(calculateChange()) * 100)}
-                  </p>
-                )}
-              </div>
-            )}
-            {receiveWarning && (
-              <p className="text-sm text-orange-400">
-                {receiveWarning}
-              </p>
-            )}
-
-            <div className="flex gap-3 pt-2">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  if (!canCloseReceive) {
-                    triggerReceiveWarning();
-                    return;
-                  }
-                  setShowReceive(false);
-                  setReceivedAmount("");
-                  setPaymentMethod("DINHEIRO");
-                  setPartialPaidCents(0);
-                }}
-                className="flex-1 border-app-border hover:bg-white/10 bg-transparent text-white"
-              >
-                Cancelar
-              </Button>
-              <Button
-                onClick={handleReceiveOrder}
-                disabled={receiving || (paymentMethod === "DINHEIRO" && !receivedAmount)}
-                className="flex-1 bg-[#FFA500] hover:bg-[#FFA500]/90 text-black tech-shadow tech-hover font-normal"
-              >
-                {receiving ? "Recebendo..." : order?.draft && selectedItems.size > 0 && selectedItems.size < (order.items?.length || 0) ? "Receber Parcial" : "Confirmar Recebimento"}
-              </Button>
-            </div>
-          </div>
-        )}
 
       </>
     );
