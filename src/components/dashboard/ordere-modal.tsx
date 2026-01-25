@@ -118,7 +118,6 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false, onSelec
       // Verificar se a resposta corresponde ao orderId atual (evitar race condition)
       if (response && response.id === orderId) {
         setOrder(response);
-        setComandaValue("");
         if (showLoading) {
           setLoading(false);
         }
@@ -594,8 +593,11 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false, onSelec
       ? convertBRLToReais(receivedAmount)
       : total;
     
-    const isPartial = order.draft && (selectedItems.size > 0 && selectedItems.size < (order.items?.length || 0) || received < total);
-    const itemIds = order.draft && selectedItems.size > 0 ? Array.from(selectedItems) : undefined;
+    const hasItemSelection = selectedItems.size > 0 && selectedItems.size < (order.items?.length || 0);
+    const isPartialByItems = order.draft && hasItemSelection;
+    const isPartialByAmount = order.draft && !isPartialByItems && received < total;
+    const isPartial = isPartialByItems || isPartialByAmount;
+    const itemIds = isPartialByItems ? Array.from(selectedItems) : undefined;
     
     if (paymentMethod === "DINHEIRO" && received < total && !isPartial) {
       alert("Valor recebido é menor que o total do pedido");
@@ -634,12 +636,25 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false, onSelec
       if (isPartial) {
         const receivedCents = Math.min(remainingCents, Math.round(received * 100));
         setPartialPaidCents((prev) => prev + receivedCents);
-        setOrder((current) => {
-          if (!current?.items) return current;
-          const remainingItems = current.items.filter((item) => !selectedItems.has(item.id));
-          return { ...current, items: remainingItems };
-        });
-        setSelectedItems(new Set());
+        if (isPartialByItems) {
+          const remainingItems = order.items?.filter((item) => !selectedItems.has(item.id)) || [];
+          setOrder((current) => {
+            if (!current?.items) return current;
+            return { ...current, items: remainingItems };
+          });
+          setSelectedItems(new Set(remainingItems.map((item) => item.id)));
+          setTableOrders((current) =>
+            current.map((item) =>
+              item.id === orderId
+                ? {
+                    ...item,
+                    items: item.items?.filter((i) => !selectedItems.has(i.id)) || [],
+                  }
+                : item
+            )
+          );
+        }
+        orderEventHelpers.notifyOrderUpdated();
       } else {
         await fetchOrder(false);
       }
@@ -762,12 +777,14 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false, onSelec
                         (sum, orderItem) => sum + orderItem.product.price * orderItem.amount,
                         0
                       ) || 0;
+                      const isCurrent = item.id === order?.id;
+                      const adjustedTotal = isCurrent ? Math.max(0, total - partialPaidCents) : total;
                       const existing = groups.get(label);
                       if (!existing) {
-                        groups.set(label, { total, orderId: item.id, createdAt: item.createdAt });
+                        groups.set(label, { total: adjustedTotal, orderId: item.id, createdAt: item.createdAt });
                         return;
                       }
-                      const updatedTotal = existing.total + total;
+                      const updatedTotal = existing.total + adjustedTotal;
                       const isNewer = new Date(item.createdAt).getTime() > new Date(existing.createdAt).getTime();
                       groups.set(label, {
                         total: updatedTotal,
@@ -948,7 +965,7 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false, onSelec
                 <div className="flex justify-between items-center">
                   <span className="text-xl font-normal">Total</span>
                   <span className="text-2xl font-normal text-brand-primary">
-                    {formatPrice(calculateTotal())}
+                    {formatPrice(Math.max(0, calculateTotal() - partialPaidCents))}
                   </span>
                 </div>
               </div>
@@ -1368,7 +1385,7 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false, onSelec
                   {formatPrice(
                     order?.draft && selectedItems.size > 0 && selectedItems.size < (order.items?.length || 0)
                       ? calculateSelectedTotal()
-                      : calculateTotal()
+                      : Math.max(0, calculateTotal() - partialPaidCents)
                   )}
                 </span>
               </div>
