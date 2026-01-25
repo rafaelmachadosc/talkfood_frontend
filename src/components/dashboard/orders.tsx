@@ -141,7 +141,7 @@ export function Orders({ token }: OrdersProps) {
   }, [token]); // token é estável, fetchOrders é definido dentro do componente
 
   const calculateOrderTotal = (order: Order) => {
-    if (!order.items) return 0;
+    if (!Array.isArray(order.items)) return 0;
 
     return order.items.reduce((total, item) => {
       return total + item.product.price * item.amount;

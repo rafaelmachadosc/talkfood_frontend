@@ -68,6 +68,7 @@ export function OrderModal({
   const router = useRouter();
   const productSearchRef = useRef<HTMLDivElement | null>(null);
   const adicionaisSearchRef = useRef<HTMLDivElement | null>(null);
+  const receiveSectionRef = useRef<HTMLDivElement | null>(null);
 
   // Função para formatar valor monetário como no campo de preço do produto (R$ 1.500,00)
   function formatToBrl(value: string): string {
@@ -266,6 +267,12 @@ export function OrderModal({
 
     return () => clearInterval(interval);
   }, [orderId, token]);
+
+  useEffect(() => {
+    if (showReceive && receiveSectionRef.current) {
+      receiveSectionRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [showReceive]);
 
   // Selecionar todos os itens quando o pedido é carregado (se ainda não foi enviado para produção)
   // IMPORTANTE: Só executar se o order corresponde ao orderId atual (evitar estado de pedido anterior)
@@ -674,16 +681,18 @@ export function OrderModal({
             return { ...current, items: remainingItems };
           });
           setSelectedItems(new Set(remainingItems.map((item) => item.id)));
-          setTableOrders((current) =>
-            current.map((item) =>
-              item.id === orderId
-                ? {
-                    ...item,
-                    items: item.items?.filter((i) => !selectedItems.has(i.id)) || [],
-                  }
-                : item
-            )
-          );
+        setTableOrders((current) =>
+          current.map((item) =>
+            item.id === orderId
+              ? {
+                  ...item,
+                  items: Array.isArray(item.items)
+                    ? item.items.filter((i) => !selectedItems.has(i.id))
+                    : [],
+                }
+              : item
+          )
+        );
         }
         orderEventHelpers.notifyOrderUpdated();
       } else {
@@ -841,7 +850,8 @@ export function OrderModal({
               </div>
 
               {/* Itens do pedido */}
-              <div ref={adicionaisSearchRef}>
+              {!showReceive && (
+                <div ref={adicionaisSearchRef}>
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-lg font-normal text-white">Itens do pedido</h3>
                   {!order.status && !isKitchen && (
@@ -930,10 +940,11 @@ export function OrderModal({
                     </p>
                   )}
                 </div>
-              </div>
+                </div>
+              )}
 
               {/* Total - ocultar na tela Cozinha */}
-              {!isKitchen && (
+              {!isKitchen && !showReceive && (
                 <div className="border-t border-app-border pt-4 space-y-2 text-white">
                   {order.draft && selectedItems.size > 0 && selectedItems.size < (order.items?.length || 0) && (
                     <div className="flex justify-between items-center">
@@ -953,7 +964,7 @@ export function OrderModal({
               )}
 
               {showReceive && (
-                <div className="mt-4 border-t border-app-border pt-4 space-y-4 text-white">
+                <div ref={receiveSectionRef} className="mt-4 border-t border-app-border pt-4 space-y-4 text-white">
                   <div className="text-lg font-normal">Receber Pedido</div>
                   <div className="bg-[#2B2A2A] rounded-lg p-4 border border-app-border">
                     <div className="flex justify-between items-center mb-2">
