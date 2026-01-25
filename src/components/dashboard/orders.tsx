@@ -246,7 +246,7 @@ export function Orders({ token }: OrdersProps) {
   };
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="space-y-4 sm:space-y-6 bg-[#EFEFEF] min-h-screen p-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
             <h1 className="text-2xl sm:text-3xl font-normal text-black">Pedidos</h1>
@@ -256,9 +256,9 @@ export function Orders({ token }: OrdersProps) {
         </div>
 
         <div className="flex gap-2">
-          <OrderForm triggerLabel="Nova comanda" defaultType="MESA" />
+          <OrderForm triggerLabel="Nova comanda" defaultType="MESA" buttonClassName="bg-[#FFA500] hover:bg-[#FFA500]/90 text-black" />
           <Button
-            className="bg-brand-primary text-black hover:bg-brand-primary"
+            className="bg-[#FFA500] text-black hover:bg-[#FFA500]/90"
             onClick={() => fetchOrders(true)}
           >
             <RefreshCcw className="w-5 h-5 icon-3d" />
@@ -335,9 +335,9 @@ export function Orders({ token }: OrdersProps) {
           <p className="text-center text-gray-600">Carregando pedidos...</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.3fr_1fr] gap-4">
           {/* Coluna PEDIDOS (Balcão) */}
-          <div className="pr-4 lg:pr-6 border-r-0 lg:border-r border-app-border">
+          <div className="pr-0 lg:pr-2 border-r-0 lg:border-r border-app-border">
             <div className="mb-6 pb-4 border-b border-app-border">
               <h2 className="text-xl font-normal text-black mb-1">Balcão</h2>
             </div>
@@ -356,7 +356,7 @@ export function Orders({ token }: OrdersProps) {
                   .filter((g) => filterGroupByTerm(g, searchBalcao, "BALCAO"));
                 
                 return balcaoGroups.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-12 bg-gray-50/50 rounded-lg border-2 border-dashed border-app-border">
+                  <div className="flex flex-col items-center justify-center py-12 bg-white rounded-lg border-2 border-dashed border-app-border">
                     <ShoppingCart className="w-12 h-12 text-gray-400 mb-3" />
                     <p className="text-center text-gray-600 font-normal">Nenhum pedido de balcão encontrado</p>
                     <p className="text-center text-gray-500 text-sm mt-1">Os pedidos do balcão aparecerão aqui</p>
@@ -377,7 +377,7 @@ export function Orders({ token }: OrdersProps) {
                     <Card
                       key={group.key}
                       className={cn(
-                        "bg-app-card text-black tech-shadow tech-hover transition-all duration-300 cursor-pointer border-2 border-cyan-400 w-full h-[72px]",
+                        "bg-white text-black tech-shadow tech-hover transition-all duration-300 cursor-pointer border-2 border-cyan-400 w-full h-[72px]",
                         group.hasNewOrders || group.hasInProduction || group.hasOpen ? "shadow-md" : ""
                       )}
                       onClick={() => setSelectedOrder(group.orders[0]?.id || null)}
@@ -415,8 +415,21 @@ export function Orders({ token }: OrdersProps) {
               </div>
           </div>
 
+          {/* Painel central fixo */}
+          <div className="lg:sticky lg:top-4 h-[calc(100vh-220px)]">
+            <OrderModal
+              orderId={selectedOrder}
+              onClose={async () => {
+                await fetchOrders(false);
+              }}
+              token={token}
+              mode="panel"
+              onSelectOrder={(orderId) => setSelectedOrder(orderId)}
+            />
+          </div>
+
           {/* Coluna MESAS*/}
-          <div className="pl-4 lg:pl-6">
+          <div className="pl-0 lg:pl-2 border-l-0 lg:border-l border-app-border">
             <div className="mb-6 pb-4 border-b border-app-border">
               <h2 className="text-xl font-normal text-black mb-1">Mesas</h2>
             </div>
@@ -455,7 +468,7 @@ export function Orders({ token }: OrdersProps) {
                           key={`MESA_${tableNumber}`}
                           className="relative transition-all duration-300"
                         >
-                          <Card className="bg-gray-50 text-black tech-shadow tech-hover border-2 border-gray-200 w-full h-[72px] p-0">
+                          <Card className="bg-white text-black tech-shadow tech-hover border-2 border-gray-200 w-full h-[72px] p-0">
                             <div className="p-3.5 h-full grid grid-cols-3 items-center gap-3">
                               <CardTitle className="text-sm font-normal tracking-tight text-left">
                                 <span className="font-semibold">
@@ -508,7 +521,7 @@ export function Orders({ token }: OrdersProps) {
                             }
                           }}
                         >
-                          <Card className="bg-green-50 text-black tech-shadow tech-hover w-full border-2 border-green-400 h-[72px] p-0">
+                          <Card className="bg-white text-black tech-shadow tech-hover w-full border-2 border-green-400 h-[72px] p-0">
                             <div className="p-3.5 h-full grid grid-cols-3 items-center gap-3">
                               <div className="flex flex-col gap-0.5 text-left">
                               <CardTitle className="text-sm font-normal tracking-tight">
@@ -550,16 +563,6 @@ export function Orders({ token }: OrdersProps) {
         </div>
       )}
 
-      <OrderModal
-        orderId={selectedOrder}
-        onClose={async () => {
-          setSelectedOrder(null);
-          // Atualizar silenciosamente (sem mostrar loading) ao fechar o modal
-          await fetchOrders(false);
-        }}
-        token={token}
-        onSelectOrder={(orderId) => setSelectedOrder(orderId)}
-      />
     </div>
   );
 }

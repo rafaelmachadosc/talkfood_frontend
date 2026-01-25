@@ -27,9 +27,15 @@ interface OrderFormProps {
   triggerLabel?: string;
   defaultType?: "MESA" | "BALCAO";
   defaultTable?: number;
+  buttonClassName?: string;
 }
 
-export function OrderForm({ triggerLabel = "Novo pedido", defaultType = "MESA", defaultTable }: OrderFormProps) {
+export function OrderForm({
+  triggerLabel = "Novo pedido",
+  defaultType = "MESA",
+  defaultTable,
+  buttonClassName = "bg-brand-primary hover:bg-brand-primary/90 text-black",
+}: OrderFormProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [orderType, setOrderType] = useState<"MESA" | "BALCAO">(defaultType);
@@ -92,7 +98,7 @@ export function OrderForm({ triggerLabel = "Novo pedido", defaultType = "MESA", 
       }}
     >
       <DialogTrigger asChild>
-        <Button className="bg-brand-primary hover:bg-brand-primary/90 text-black tech-shadow tech-hover font-normal">
+        <Button className={`${buttonClassName} tech-shadow tech-hover font-normal`}>
           <Plus className="h-5 w-5 mr-2 icon-3d" />
           {triggerLabel}
         </Button>

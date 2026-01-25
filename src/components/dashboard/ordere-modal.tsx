@@ -34,9 +34,17 @@ interface OrderModalProps {
   token: string;
   isKitchen?: boolean; // Se true, oculta botões de ação e total (modo visualização cozinha)
   onSelectOrder?: (orderId: string) => void;
+  mode?: "modal" | "panel";
 }
 
-export function OrderModal({ onClose, orderId, token, isKitchen = false, onSelectOrder }: OrderModalProps) {
+export function OrderModal({
+  onClose,
+  orderId,
+  token,
+  isKitchen = false,
+  onSelectOrder,
+  mode = "modal",
+}: OrderModalProps) {
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(false);
   const [receiving, setReceiving] = useState(false);
@@ -675,6 +683,719 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false, onSelec
     }
   };
 
+  if (mode === "panel") {
+    return (
+      <>
+        <div className="bg-[#1F1E1E] text-white h-full flex flex-col border border-app-border rounded-lg">
+          <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0">
+        <DialogTitle className="text-2xl font-normal tracking-tight text-white">
+              Detalhe do pedido
+            </DialogTitle>
+            <DialogDescription className="sr-only">
+              Visualize e gerencie os detalhes do pedido, adicione itens, envie para produção ou receba o pagamento
+            </DialogDescription>
+          </DialogHeader>
+
+          {loading ? (
+            <div className="flex items-center justify-center py-8 px-6">
+              <p className="text-gray-600">Carregando...</p>
+            </div>
+          ) : order ? (
+            <div className="px-6 pb-4 overflow-y-auto flex-1 space-y-6">
+              {/* Informações do pedido */}
+              <div className="grid grid-cols-1 gap-4">
+                <div>
+                  <p className="text-sm text-gray-600 mb-1">Modalidade</p>
+                  <p className="text-lg font-normal">
+                    {order.orderType === "MESA" 
+                      ? `Pedido na Mesa ${order.table ? order.table : ""}${(order.comanda || order.commandNumber || comandaValue) ? ` - ${(order.comanda || order.commandNumber || comandaValue).toString().trim()}` : ""}` 
+                      : `Pedido no Balcão${order.name ? ` - ${order.name}` : ""}`}
+                  </p>
+                </div>
+                {order.orderType === "MESA" && (
+                  <div>
+                    <div className="mt-1">
+                      <OrderForm triggerLabel="Nova comanda" defaultType="MESA" defaultTable={order.table} />
+                    </div>
+                    {(() => {
+                      if (!order.table) return null;
+                      const groups = new Map<string, { total: number; orderId: string; createdAt: string }>();
+                      tableOrders.forEach((item) => {
+                        const label = (item.comanda || item.commandNumber || "").trim();
+                        if (!label) return;
+                        const total = item.items?.reduce(
+                          (sum, orderItem) => sum + orderItem.product.price * orderItem.amount,
+                          0
+                        ) || 0;
+                        const isCurrent = item.id === order?.id;
+                        const adjustedTotal = isCurrent ? Math.max(0, total - partialPaidCents) : total;
+                        const existing = groups.get(label);
+                        if (!existing) {
+                          groups.set(label, { total: adjustedTotal, orderId: item.id, createdAt: item.createdAt });
+                          return;
+                        }
+                        const updatedTotal = existing.total + adjustedTotal;
+                        const isNewer = new Date(item.createdAt).getTime() > new Date(existing.createdAt).getTime();
+                        groups.set(label, {
+                          total: updatedTotal,
+                          orderId: isNewer ? item.id : existing.orderId,
+                          createdAt: isNewer ? item.createdAt : existing.createdAt,
+                        });
+                      });
+
+                      const entries = Array.from(groups.entries()).map(([label, data]) => ({
+                        label,
+                        total: data.total,
+                        orderId: data.orderId,
+                      }));
+                      const totalAll = entries.reduce((sum, entry) => sum + entry.total, 0);
+
+                      if (entries.length === 0) return null;
+
+                      return (
+                        <div className="mt-4 space-y-2">
+                          <p className="text-sm text-gray-600">Comandas</p>
+                          <div className="flex flex-wrap gap-2">
+                            {entries.map((entry) => (
+                              <button
+                                key={entry.label}
+                                type="button"
+                                className="px-3 py-1 rounded bg-gray-100 text-sm hover:bg-gray-200"
+                                onClick={() => onSelectOrder && onSelectOrder(entry.orderId)}
+                              >
+                                {entry.label} - {formatPrice(entry.total)}
+                              </button>
+                            ))}
+                          </div>
+                          <p className="text-xs text-gray-500">
+                            Clique em uma comanda para abrir o consumo individual e use “Receber” para pagar separadamente.
+                          </p>
+                          <div className="text-sm text-gray-600">
+                            Total de todas as comandas:{" "}
+                            <span className="text-brand-primary font-normal">
+                              {formatPrice(totalAll)}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
+                {order.name && (
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">Cliente</p>
+                    <p className="text-lg font-normal">{order.name}</p>
+                  </div>
+                )}
+                {order.phone && (
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">Telefone</p>
+                    <p className="text-lg font-normal">{order.phone}</p>
+                  </div>
+                )}
+                <div>
+                  <p className="text-sm text-gray-600 mb-1">Status</p>
+                  {order.status ? (
+                    <span className="inline-block px-3 py-1 bg-green-500/20 text-green-500 rounded-full font-medium text-xs">
+                      Finalizado
+                    </span>
+                  ) : order.draft ? (
+                    <span className="inline-block px-3 py-1 bg-green-500/20 text-green-500 rounded-full font-medium text-xs">
+                      Aberto
+                    </span>
+                  ) : (
+                    <span className="inline-block px-3 py-1 bg-orange-500/20 text-orange-500 rounded-full font-medium text-xs">
+                      Em produção
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Itens do pedido */}
+              <div ref={adicionaisSearchRef}>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-lg font-normal text-white">Itens do pedido</h3>
+                  {!order.status && !isKitchen && (
+                    <Button
+                      size="sm"
+                      onClick={() => setShowAddItem(true)}
+                      className="bg-brand-primary hover:bg-brand-primary/90 text-black tech-shadow tech-hover font-normal"
+                    >
+                      <Plus className="w-4 h-4 mr-1 icon-3d" />
+                      Adicionar Item
+                    </Button>
+                  )}
+                </div>
+                <div className="space-y-3">
+                  {order.items && order.items.length > 0 ? (
+                    groupItemsByProduct().map((groupedItem) => {
+                      const subtotal = groupedItem.product.price * groupedItem.totalAmount;
+                      const allSelected = groupedItem.itemIds.every(id => selectedItems.has(id));
+                      const someSelected = groupedItem.itemIds.some(id => selectedItems.has(id));
+                      const isSelected = allSelected;
+                      
+                      return (
+                        <div
+                          key={groupedItem.product.id}
+                          className={cn(
+                            "bg-white rounded-lg p-4 border transition-colors text-black",
+                            isSelected && !isKitchen && order.draft
+                              ? "border-green-500 bg-green-50/30"
+                              : someSelected && !isKitchen && order.draft
+                              ? "border-yellow-500 bg-yellow-50/30"
+                              : "border-app-border"
+                          )}
+                        >
+                          <div className="flex justify-between items-start gap-3">
+                            {!isKitchen && order.draft && (
+                              <label className="cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  aria-label="Selecionar item"
+                                  checked={isSelected}
+                                  onChange={(e) => {
+                                    const newSelected = new Set(selectedItems);
+                                    if (e.target.checked) {
+                                      groupedItem.itemIds.forEach(id => newSelected.add(id));
+                                    } else {
+                                      groupedItem.itemIds.forEach(id => newSelected.delete(id));
+                                    }
+                                    setSelectedItems(newSelected);
+                                  }}
+                                  className="accent-brand-primary"
+                                />
+                              </label>
+                            )}
+                            <div className="flex-1">
+                              <h4 className="font-normal text-base">
+                                {groupedItem.product.name}
+                              </h4>
+                              {!isKitchen && (
+                                <>
+                              <p className="text-sm text-gray-600 mt-2">
+                                    {groupedItem.product.description || "-"}
+                                  </p>
+                              <p className="text-sm text-gray-600 mt-2">
+                                    {formatPrice(groupedItem.product.price)} x {groupedItem.totalAmount}
+                                  </p>
+                                </>
+                              )}
+                            </div>
+                            <div className="text-right ml-4">
+                              <p className="text-sm text-gray-600 mb-1">
+                                Quantidade: {groupedItem.totalAmount}
+                              </p>
+                              {!isKitchen && (
+                                <p className="font-normal text-lg">
+                                  Subtotal: {formatPrice(subtotal)}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <p className="text-gray-300 text-center py-4">
+                      Nenhum item no pedido
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Total - ocultar na tela Cozinha */}
+              {!isKitchen && (
+                <div className="border-t border-app-border pt-4 space-y-2 text-white">
+                  {order.draft && selectedItems.size > 0 && selectedItems.size < (order.items?.length || 0) && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-lg font-normal text-gray-300">Total Selecionado</span>
+                      <span className="text-xl font-normal text-orange-500">
+                        {formatPrice(calculateSelectedTotal())}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex justify-between items-center">
+                    <span className="text-xl font-normal">Total</span>
+                    <span className="text-2xl font-normal text-white">
+                      {formatPrice(Math.max(0, calculateTotal() - partialPaidCents))}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="flex items-center justify-center py-10 px-6 text-gray-500">
+              Selecione uma mesa ou balcão para visualizar os detalhes.
+            </div>
+          )}
+
+          {order && !isKitchen && (
+            <DialogFooter className="px-6 pb-6 pt-4 flex-shrink-0 flex gap-2 sm:gap-2 border-t border-app-border">
+              {order.draft ? (
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={handleCloseOrder}
+                    className="flex-1 border-app-border hover:bg-white/10 bg-transparent text-white"
+                    disabled={loading}
+                  >
+                    Fechar Pedido
+                  </Button>
+                  <Button
+                    className="flex-1 bg-[#FFA500] hover:bg-[#FFA500]/90 text-black tech-shadow tech-hover font-normal"
+                    disabled={loading || !order.items || order.items.length === 0 || selectedItems.size === 0}
+                    onClick={handleSendOrder}
+                  >
+                    Produzir
+                  </Button>
+                  <Button
+                    className="flex-1 bg-[#FFA500] hover:bg-[#FFA500]/90 text-black tech-shadow tech-hover font-normal"
+                    disabled={loading || receiving || !order.items || order.items.length === 0 || selectedItems.size === 0}
+                    onClick={() => setShowReceive(true)}
+                  >
+                    Receber
+                  </Button>
+                </>
+              ) : order.status ? (
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={handleCloseOrder}
+                    className="flex-1 border-app-border hover:bg-white/10 bg-transparent text-white"
+                    disabled={loading}
+                  >
+                    Fechar Pedido
+                  </Button>
+                  <Button
+                    className="flex-1 bg-[#FFA500] hover:bg-[#FFA500]/90 text-black tech-shadow tech-hover font-normal"
+                    disabled={loading || receiving}
+                    onClick={() => setShowReceive(true)}
+                  >
+                    Receber
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={handleCloseOrder}
+                    className="flex-1 border-app-border hover:bg-white/10 bg-transparent text-white"
+                    disabled={loading}
+                  >
+                    Fechar Pedido
+                  </Button>
+                  <Button
+                    className="flex-1 bg-[#FFA500] hover:bg-[#FFA500]/90 text-black tech-shadow tech-hover font-normal"
+                    disabled={loading}
+                    onClick={handleFinishOrder}
+                  >
+                    Finalizar pedido
+                  </Button>
+                </>
+              )}
+            </DialogFooter>
+          )}
+        </div>
+
+        {/* Dialog: Adicionar Item */}
+        <Dialog open={showAddItem} onOpenChange={setShowAddItem}>
+          <DialogContent className="bg-app-card border-app-border text-black max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-normal tracking-tight">
+                Adicionar Item ao Pedido
+              </DialogTitle>
+              <DialogDescription className="text-gray-600">
+                Busque e selecione produtos
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-6 mt-4">
+              <div ref={productSearchRef}>
+                <div className="flex items-center justify-between mb-2">
+                  <Label htmlFor="product-search">
+                    Produto
+                  </Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="border-app-border text-black"
+                    onClick={() => {
+                      const selectableProducts = products.filter((product) =>
+                        productSearch.length >= 2 && product.name.toLowerCase().includes(productSearch.toLowerCase())
+                      );
+                      const allIds = selectableProducts.map((product) => product.id);
+                      setSelectedProducts(new Set(allIds));
+                    }}
+                  >
+                    Selecionar tudo
+                  </Button>
+                </div>
+                <Input
+                  id="product-search"
+                  value={productSearch}
+                  onChange={(e) => setProductSearch(e.target.value)}
+                  placeholder="Digite pelo menos 2 letras para buscar..."
+                  className="border-app-border bg-white text-black"
+                  onBlur={() => setProductSearch("")}
+                />
+                {productSearch.length >= 2 && (
+                  <div className="mt-2 space-y-1">
+                    {products
+                      .filter((product) =>
+                        product.name.toLowerCase().includes(productSearch.toLowerCase())
+                      )
+                      .map((product) => (
+                        <button
+                          key={product.id}
+                          type="button"
+                          className="w-full text-left px-3 py-2 rounded hover:bg-gray-100"
+                          onClick={() => {
+                            const newSelected = new Set(selectedProducts);
+                            if (newSelected.has(product.id)) {
+                              newSelected.delete(product.id);
+                            } else {
+                              newSelected.add(product.id);
+                            }
+                            setSelectedProducts(newSelected);
+                          }}
+                        >
+                          {product.name}
+                        </button>
+                      ))}
+                  </div>
+                )}
+                {selectedProducts.size > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {Array.from(selectedProducts).map((productId) => {
+                      const product = products.find(p => p.id === productId);
+                      if (!product) return null;
+                      return (
+                        <span
+                          key={productId}
+                          className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-800 rounded text-sm"
+                        >
+                          {product.name}
+                          <button
+                            onClick={() => {
+                              const newSelected = new Set(selectedProducts);
+                              newSelected.delete(productId);
+                              setSelectedProducts(newSelected);
+                            }}
+                            className="hover:text-green-900"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <Label className="mb-2">Quantidade para produtos selecionados</Label>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="border-app-border text-black"
+                    onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                  >
+                    <Minus className="w-4 h-4" />
+                  </Button>
+                  <Input
+                    value={quantity}
+                    readOnly
+                    className="w-16 text-center border-app-border bg-white text-black"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="border-app-border text-black"
+                    onClick={() => setQuantity((q) => q + 1)}
+                  >
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+
+              <div ref={adicionaisSearchRef}>
+                <div className="flex items-center justify-between mb-2">
+                  <Label htmlFor="adicionais-search">
+                    Adicionais
+                  </Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="border-app-border text-black"
+                    onClick={() => {
+                      const selectableAdicionais = products.filter((product) =>
+                        product.category?.toLowerCase() === "adicionais" &&
+                        adicionaisSearch.length >= 2 &&
+                        product.name.toLowerCase().includes(adicionaisSearch.toLowerCase())
+                      );
+                      const allIds = selectableAdicionais.map((product) => product.id);
+                      setSelectedAdicionais(new Set(allIds));
+                    }}
+                  >
+                    Selecionar tudo
+                  </Button>
+                </div>
+                <Input
+                  id="adicionais-search"
+                  value={adicionaisSearch}
+                  onChange={(e) => setAdicionaisSearch(e.target.value)}
+                  placeholder="Digite pelo menos 2 letras para buscar adicionais..."
+                  className="border-app-border bg-white text-black"
+                  onBlur={() => setAdicionaisSearch("")}
+                />
+                {adicionaisSearch.length >= 2 && (
+                  <div className="mt-2 space-y-1">
+                    {products
+                      .filter((product) =>
+                        product.category?.toLowerCase() === "adicionais" &&
+                        product.name.toLowerCase().includes(adicionaisSearch.toLowerCase())
+                      )
+                      .map((product) => (
+                        <button
+                          key={product.id}
+                          type="button"
+                          className="w-full text-left px-3 py-2 rounded hover:bg-gray-100"
+                          onClick={() => {
+                            const newSelected = new Set(selectedAdicionais);
+                            if (newSelected.has(product.id)) {
+                              newSelected.delete(product.id);
+                            } else {
+                              newSelected.add(product.id);
+                            }
+                            setSelectedAdicionais(newSelected);
+                          }}
+                        >
+                          {product.name}
+                        </button>
+                      ))}
+                  </div>
+                )}
+                {selectedAdicionais.size > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {Array.from(selectedAdicionais).map((productId) => {
+                      const product = products.find(p => p.id === productId);
+                      if (!product) return null;
+                      return (
+                        <span
+                          key={productId}
+                          className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 rounded text-sm"
+                        >
+                          {product.name}
+                          <button
+                            onClick={() => {
+                              const newSelected = new Set(selectedAdicionais);
+                              newSelected.delete(productId);
+                              setSelectedAdicionais(newSelected);
+                            }}
+                            className="hover:text-blue-900"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {(selectedProducts.size > 0 || selectedAdicionais.size > 0) && (
+                <div className="bg-gray-50 rounded-lg p-4 border border-app-border">
+                  <div className="flex justify-between items-center">
+                    <span className="font-normal text-gray-700">Total:</span>
+                    <span className="text-xl font-normal text-brand-primary">
+                      {formatPrice(
+                        Array.from(selectedProducts).reduce((sum, id) => {
+                          const product = products.find(p => p.id === id);
+                          return sum + (product ? product.price * quantity : 0);
+                        }, 0) +
+                        Array.from(selectedAdicionais).reduce((sum, id) => {
+                          const product = products.find(p => p.id === id);
+                          return sum + (product ? product.price : 0);
+                        }, 0)
+                      )}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowAddItem(false);
+                    setProductSearch("");
+                    setSelectedProducts(new Set());
+                    setAdicionaisSearch("");
+                    setSelectedAdicionais(new Set());
+                    setQuantity(1);
+                  }}
+                  className="flex-1 border-app-border hover:bg-transparent text-black"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={handleAddItems}
+                  disabled={selectedProducts.size === 0 && selectedAdicionais.size === 0}
+                  className="flex-1 bg-brand-primary hover:bg-brand-primary/90 text-black tech-shadow tech-hover font-normal"
+                >
+                  Adicionar
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialog: Receber Pedido */}
+        <Dialog
+          open={showReceive}
+          onOpenChange={(open: boolean) => {
+            if (open) {
+              setShowReceive(true);
+              return;
+            }
+            if (canCloseReceive) {
+              setShowReceive(false);
+              setReceivedAmount("");
+              setPaymentMethod("DINHEIRO");
+              setPartialPaidCents(0);
+              return;
+            }
+            triggerReceiveWarning();
+          }}
+        >
+          <DialogContent className="bg-app-card border-app-border text-black max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-normal tracking-tight">
+                Receber Pedido
+              </DialogTitle>
+              <DialogDescription className="text-gray-600">
+                Informe o valor recebido e método de pagamento
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 mt-4">
+              <div className="bg-white rounded-lg p-4 border border-app-border">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm text-gray-600">
+                    {order?.draft && selectedItems.size > 0 && selectedItems.size < (order.items?.length || 0)
+                      ? "Total Selecionado:"
+                      : "Total do Pedido:"}
+                  </span>
+                  <span className="text-lg font-normal text-brand-primary">
+                    {formatPrice(
+                      order?.draft && selectedItems.size > 0 && selectedItems.size < (order.items?.length || 0)
+                        ? calculateSelectedTotal()
+                        : Math.max(0, calculateTotal() - partialPaidCents)
+                    )}
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="paymentMethod" className="mb-2">
+                  Método de Pagamento *
+                </Label>
+                <Select value={paymentMethod} onValueChange={setPaymentMethod} required>
+                  <SelectTrigger className="border-app-border bg-white text-black">
+                    <SelectValue placeholder="Selecione o método" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-app-card border-app-border">
+                    <SelectItem value="DINHEIRO" className="text-black hover:bg-transparent cursor-pointer">
+                      Dinheiro
+                    </SelectItem>
+                    <SelectItem value="CARTAO_DEBITO" className="text-black hover:bg-transparent cursor-pointer">
+                      Cartão de Débito
+                    </SelectItem>
+                    <SelectItem value="CARTAO_CREDITO" className="text-black hover:bg-transparent cursor-pointer">
+                      Cartão de Crédito
+                    </SelectItem>
+                    <SelectItem value="PIX" className="text-black hover:bg-transparent cursor-pointer">
+                      PIX
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {paymentMethod === "DINHEIRO" && (
+                <div>
+                  <Label htmlFor="receivedAmount" className="mb-2">
+                    Valor Recebido (R$) *
+                  </Label>
+                  <Input
+                    id="receivedAmount"
+                    type="text"
+                    placeholder="Ex: 35,00"
+                    className="border-app-border bg-white text-black"
+                    value={receivedAmount}
+                    onChange={(e) => {
+                      const formatted = formatToBrl(e.target.value);
+                      setReceivedAmount(formatted);
+                    }}
+                  />
+                  {receivedAmount && calculateChange() >= 0 && (
+                    <p className="text-sm text-green-600 mt-2 font-normal">
+                      Troco: {formatPrice(calculateChange() * 100)}
+                    </p>
+                  )}
+                  {receivedAmount && calculateChange() < 0 && (
+                    <p className="text-sm text-orange-600 mt-2">
+                      Recebimento parcial. Faltam: {formatPrice(Math.abs(calculateChange()) * 100)}
+                    </p>
+                  )}
+                </div>
+              )}
+              {receiveWarning && (
+                <p className="text-sm text-orange-600">
+                  {receiveWarning}
+                </p>
+              )}
+              {paymentMethod !== "DINHEIRO" && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <p className="text-sm text-blue-700">
+                    {order?.draft && selectedItems.size > 0 && selectedItems.size < (order.items?.length || 0)
+                      ? "Este será um recebimento parcial dos itens selecionados."
+                      : "O valor total será recebido via " + (paymentMethod === "PIX" ? "PIX" : paymentMethod === "CARTAO_CREDITO" ? "Cartão de Crédito" : "Cartão de Débito") + "."}
+                  </p>
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    if (!canCloseReceive) {
+                      triggerReceiveWarning();
+                      return;
+                    }
+                    setShowReceive(false);
+                    setReceivedAmount("");
+                    setPaymentMethod("DINHEIRO");
+                    setPartialPaidCents(0);
+                  }}
+                  className="flex-1 border-app-border hover:bg-transparent text-black"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={handleReceiveOrder}
+                  disabled={receiving || (paymentMethod === "DINHEIRO" && !receivedAmount)}
+                  className="flex-1 bg-green-500 hover:bg-green-600 text-white tech-shadow tech-hover font-normal"
+                >
+                  {receiving ? "Recebendo..." : order?.draft && selectedItems.size > 0 && selectedItems.size < (order.items?.length || 0) ? "Receber Parcial" : "Confirmar Recebimento"}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </>
+    );
+  }
 
   return (
     <Dialog open={orderId !== null} onOpenChange={() => onClose()}>
@@ -690,15 +1411,15 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false, onSelec
 
         {loading ? (
           <div className="flex items-center justify-center py-8 px-6">
-            <p className="text-gray-600">Carregando...</p>
+            <p className="text-gray-200">Carregando...</p>
           </div>
         ) : order ? (
           <div className="px-6 pb-4 overflow-y-auto flex-1 space-y-6">
             {/* Informações do pedido */}
             <div className="grid grid-cols-1 gap-4">
               <div>
-                <p className="text-sm text-gray-600 mb-1">Modalidade</p>
-                <p className="text-lg font-normal">
+                  <p className="text-sm text-gray-300 mb-1">Modalidade</p>
+                  <p className="text-lg font-normal text-white">
                   {order.orderType === "MESA" 
                     ? `Pedido na Mesa ${order.table ? order.table : ""}${(order.comanda || order.commandNumber || comandaValue) ? ` - ${(order.comanda || order.commandNumber || comandaValue).toString().trim()}` : ""}` 
                     : `Pedido no Balcão${order.name ? ` - ${order.name}` : ""}`}
@@ -746,25 +1467,25 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false, onSelec
 
                     return (
                       <div className="mt-4 space-y-2">
-                        <p className="text-sm text-gray-600">Comandas</p>
+                      <p className="text-sm text-gray-300">Comandas</p>
                         <div className="flex flex-wrap gap-2">
                           {entries.map((entry) => (
                             <button
                               key={entry.label}
                               type="button"
-                              className="px-3 py-1 rounded bg-gray-100 text-sm hover:bg-gray-200"
+                              className="px-3 py-1 rounded bg-white/10 text-sm hover:bg-white/20 text-white"
                               onClick={() => onSelectOrder && onSelectOrder(entry.orderId)}
                             >
                               {entry.label} - {formatPrice(entry.total)}
                             </button>
                           ))}
                         </div>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-gray-300">
                           Clique em uma comanda para abrir o consumo individual e use “Receber” para pagar separadamente.
                         </p>
-                        <div className="text-sm text-gray-600">
+                        <div className="text-sm text-gray-300">
                           Total de todas as comandas:{" "}
-                          <span className="text-brand-primary font-normal">
+                          <span className="text-white font-normal">
                             {formatPrice(totalAll)}
                           </span>
                         </div>
@@ -775,18 +1496,18 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false, onSelec
               )}
               {order.name && (
                 <div>
-                  <p className="text-sm text-gray-600 mb-1">Cliente</p>
-                  <p className="text-lg font-normal">{order.name}</p>
+                  <p className="text-sm text-gray-300 mb-1">Cliente</p>
+                  <p className="text-lg font-normal text-white">{order.name}</p>
                 </div>
               )}
               {order.phone && (
                 <div>
-                  <p className="text-sm text-gray-600 mb-1">Telefone</p>
-                  <p className="text-lg font-normal">{order.phone}</p>
+                  <p className="text-sm text-gray-300 mb-1">Telefone</p>
+                  <p className="text-lg font-normal text-white">{order.phone}</p>
                 </div>
               )}
               <div>
-                <p className="text-sm text-gray-600 mb-1">Status</p>
+                  <p className="text-sm text-gray-300 mb-1">Status</p>
                 {order.status ? (
                   <span className="inline-block px-3 py-1 bg-green-500/20 text-green-500 rounded-full font-medium text-xs">
                     Finalizado
