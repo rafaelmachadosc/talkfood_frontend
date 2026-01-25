@@ -23,7 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { formatPrice } from "@/lib/format";
-import { finishOrderAction, receiveComandaAction, receiveOrderAction, updateOrderInfoAction } from "@/actions/orders";
+import { finishOrderAction, receiveOrderAction, updateOrderInfoAction } from "@/actions/orders";
 import { useRouter } from "next/navigation";
 import { Plus, Minus } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -56,7 +56,6 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false, onSelec
   const [partialPaidCents, setPartialPaidCents] = useState(0);
   const [receiveWarning, setReceiveWarning] = useState("");
   const [canCloseReceive, setCanCloseReceive] = useState(true);
-  const [receivingComanda, setReceivingComanda] = useState(false);
   const [tableOrders, setTableOrders] = useState<Order[]>([]);
   const router = useRouter();
   const productSearchRef = useRef<HTMLDivElement | null>(null);
@@ -676,38 +675,6 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false, onSelec
     }
   };
 
-  const handleReceiveComanda = async () => {
-    if (!order || !order.table) return;
-    const comanda = (order.comanda || order.commandNumber || comandaValue || "").toString().trim();
-    if (!comanda) {
-      alert("Informe a comanda antes de receber.");
-      return;
-    }
-    setReceivingComanda(true);
-    try {
-      const received = paymentMethod === "DINHEIRO"
-        ? convertBRLToReais(receivedAmount)
-        : undefined;
-      const result = await receiveComandaAction({
-        table: order.table,
-        comanda,
-        paymentMethod,
-        receivedAmount: received,
-      });
-      if (!result.success) {
-        alert(result.error);
-        return;
-      }
-      setShowReceive(false);
-      setReceivedAmount("");
-      setPaymentMethod("DINHEIRO");
-      setPartialPaidCents(0);
-      orderEventHelpers.notifyOrderUpdated();
-      await onClose();
-    } finally {
-      setReceivingComanda(false);
-    }
-  };
 
   return (
     <Dialog open={orderId !== null} onOpenChange={() => onClose()}>
@@ -739,32 +706,7 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false, onSelec
               </div>
               {order.orderType === "MESA" && (
                 <div>
-                  <p className="text-sm text-gray-600 mb-1">Nome ou comanda</p>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      value={comandaValue}
-                      onChange={(e) => setComandaValue(e.target.value)}
-                      placeholder="Digite o nome ou comanda"
-                      className="border-app-border bg-white text-black"
-                      onBlur={handleComandaSubmit}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          handleComandaSubmit();
-                        }
-                      }}
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={handleSaveComanda}
-                      className="border-app-border text-black"
-                      disabled={comandaValue.trim() === (order.comanda || order.commandNumber ? String(order.comanda || order.commandNumber) : "")}
-                    >
-                      Salvar
-                    </Button>
-                  </div>
-                  <div className="mt-3">
+                  <div className="mt-1">
                     <OrderForm triggerLabel="Nova comanda" defaultType="MESA" defaultTable={order.table} />
                   </div>
                   {(() => {
@@ -817,6 +759,9 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false, onSelec
                             </button>
                           ))}
                         </div>
+                        <p className="text-xs text-gray-500">
+                          Clique em uma comanda para abrir o consumo individual e use “Receber” para pagar separadamente.
+                        </p>
                         <div className="text-sm text-gray-600">
                           Total de todas as comandas:{" "}
                           <span className="text-brand-primary font-normal">
@@ -1476,18 +1421,6 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false, onSelec
               >
                 Cancelar
               </Button>
-              {order?.orderType === "MESA" && (order?.comanda || comandaValue) && (
-                <Button
-                  onClick={handleReceiveComanda}
-                  disabled={
-                    receivingComanda ||
-                    (paymentMethod === "DINHEIRO" && !receivedAmount)
-                  }
-                  className="flex-1 bg-brand-primary hover:bg-brand-primary/90 text-black tech-shadow tech-hover font-normal"
-                >
-                  {receivingComanda ? "Recebendo..." : "Receber Comanda"}
-                </Button>
-              )}
               <Button
                 onClick={handleReceiveOrder}
                 disabled={receiving || (paymentMethod === "DINHEIRO" && !receivedAmount)}
