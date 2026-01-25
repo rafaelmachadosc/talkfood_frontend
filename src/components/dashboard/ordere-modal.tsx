@@ -1183,7 +1183,15 @@ export function OrderModal({
                   onChange={(e) => setProductSearch(e.target.value)}
                   placeholder="Digite pelo menos 2 letras para buscar..."
                   className="border-app-border bg-white text-black"
-                  onBlur={() => setProductSearch("")}
+                  onBlur={() => {
+                    setTimeout(() => {
+                      const active = document.activeElement as HTMLElement | null;
+                      if (productSearchRef.current && active && productSearchRef.current.contains(active)) {
+                        return;
+                      }
+                      setProductSearch("");
+                    }, 0);
+                  }}
                 />
                 {productSearch.length >= 2 && (
                   <div className="mt-2 space-y-1">
@@ -1295,7 +1303,15 @@ export function OrderModal({
                   onChange={(e) => setAdicionaisSearch(e.target.value)}
                   placeholder="Digite pelo menos 2 letras para buscar adicionais..."
                   className="border-app-border bg-white text-black"
-                  onBlur={() => setAdicionaisSearch("")}
+                  onBlur={() => {
+                    setTimeout(() => {
+                      const active = document.activeElement as HTMLElement | null;
+                      if (adicionaisSearchRef.current && active && adicionaisSearchRef.current.contains(active)) {
+                        return;
+                      }
+                      setAdicionaisSearch("");
+                    }, 0);
+                  }}
                 />
                 {adicionaisSearch.length >= 2 && (
                   <div className="mt-2 space-y-1">
