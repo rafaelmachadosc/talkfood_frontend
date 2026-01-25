@@ -33,9 +33,10 @@ interface OrderModalProps {
   onClose: () => Promise<void>;
   token: string;
   isKitchen?: boolean; // Se true, oculta botões de ação e total (modo visualização cozinha)
+  onSelectOrder?: (orderId: string) => void;
 }
 
-export function OrderModal({ onClose, orderId, token, isKitchen = false }: OrderModalProps) {
+export function OrderModal({ onClose, orderId, token, isKitchen = false, onSelectOrder }: OrderModalProps) {
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(false);
   const [receiving, setReceiving] = useState(false);
@@ -56,6 +57,7 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
   const [receiveWarning, setReceiveWarning] = useState("");
   const [canCloseReceive, setCanCloseReceive] = useState(true);
   const [receivingComanda, setReceivingComanda] = useState(false);
+  const [tableOrders, setTableOrders] = useState<Order[]>([]);
   const router = useRouter();
   const productSearchRef = useRef<HTMLDivElement | null>(null);
   const adicionaisSearchRef = useRef<HTMLDivElement | null>(null);
@@ -116,10 +118,7 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
       // Verificar se a resposta corresponde ao orderId atual (evitar race condition)
       if (response && response.id === orderId) {
         setOrder(response);
-        const responseComanda =
-          response.comanda ??
-          (response as { commandNumber?: string }).commandNumber;
-        setComandaValue(responseComanda ? String(responseComanda) : "");
+        setComandaValue("");
         if (showLoading) {
           setLoading(false);
         }
@@ -179,6 +178,7 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
     setLoading(false);
     setReceiving(false);
     initialSelectionRef.current = null;
+    setTableOrders([]);
   }, [orderId]);
 
   useEffect(() => {
@@ -193,6 +193,37 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
 
     loadOrders();
   }, [orderId, token]);
+
+  useEffect(() => {
+    async function loadTableOrders() {
+      if (!order || order.orderType !== "MESA" || !order.table) {
+        setTableOrders([]);
+        return;
+      }
+
+      try {
+        const draftOrders = await apiClient<Order[]>("/api/orders?draft=true", {
+          method: "GET",
+          token: token,
+          silent404: true,
+        });
+        const nonDraftOrders = await apiClient<Order[]>("/api/orders?draft=false", {
+          method: "GET",
+          token: token,
+          silent404: true,
+        });
+        const allOrders = [...(draftOrders || []), ...(nonDraftOrders || [])];
+        const filtered = allOrders.filter(
+          (item) => item.orderType === "MESA" && item.table === order.table && !item.status
+        );
+        setTableOrders(filtered);
+      } catch {
+        setTableOrders([]);
+      }
+    }
+
+    loadTableOrders();
+  }, [order, token]);
 
   // Atualizar automaticamente quando o modal estiver aberto
   useEffect(() => {
@@ -505,17 +536,23 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
 
   const handleSaveComanda = async () => {
     if (!orderId) return;
+    if (!comandaValue.trim()) {
+      alert("Informe o nome ou número da comanda");
+      return;
+    }
     const result = await updateOrderInfoAction(orderId, { comanda: comandaValue.trim() });
     if (!result.success) {
       alert(result.error);
       return;
     }
+    setComandaValue("");
     await fetchOrder(false);
     orderEventHelpers.notifyOrderUpdated();
   };
 
   const handleComandaSubmit = async () => {
     if (!order) return;
+    if (!comandaValue.trim()) return;
     const currentValue = order.comanda || order.commandNumber ? String(order.comanda || order.commandNumber).trim() : "";
     if (comandaValue.trim() === currentValue) return;
     await handleSaveComanda();
@@ -715,6 +752,63 @@ export function OrderModal({ onClose, orderId, token, isKitchen = false }: Order
                   <div className="mt-3">
                     <OrderForm triggerLabel="Nova comanda" defaultType="MESA" defaultTable={order.table} />
                   </div>
+                  {(() => {
+                    if (!order.table) return null;
+                    const groups = new Map<string, { total: number; orderId: string; createdAt: string }>();
+                    tableOrders.forEach((item) => {
+                      const label = (item.comanda || item.commandNumber || "").trim();
+                      if (!label) return;
+                      const total = item.items?.reduce(
+                        (sum, orderItem) => sum + orderItem.product.price * orderItem.amount,
+                        0
+                      ) || 0;
+                      const existing = groups.get(label);
+                      if (!existing) {
+                        groups.set(label, { total, orderId: item.id, createdAt: item.createdAt });
+                        return;
+                      }
+                      const updatedTotal = existing.total + total;
+                      const isNewer = new Date(item.createdAt).getTime() > new Date(existing.createdAt).getTime();
+                      groups.set(label, {
+                        total: updatedTotal,
+                        orderId: isNewer ? item.id : existing.orderId,
+                        createdAt: isNewer ? item.createdAt : existing.createdAt,
+                      });
+                    });
+
+                    const entries = Array.from(groups.entries()).map(([label, data]) => ({
+                      label,
+                      total: data.total,
+                      orderId: data.orderId,
+                    }));
+                    const totalAll = entries.reduce((sum, entry) => sum + entry.total, 0);
+
+                    if (entries.length === 0) return null;
+
+                    return (
+                      <div className="mt-4 space-y-2">
+                        <p className="text-sm text-gray-600">Comandas</p>
+                        <div className="flex flex-wrap gap-2">
+                          {entries.map((entry) => (
+                            <button
+                              key={entry.label}
+                              type="button"
+                              className="px-3 py-1 rounded bg-gray-100 text-sm hover:bg-gray-200"
+                              onClick={() => onSelectOrder && onSelectOrder(entry.orderId)}
+                            >
+                              {entry.label} - {formatPrice(entry.total)}
+                            </button>
+                          ))}
+                        </div>
+                        <div className="text-sm text-gray-600">
+                          Total de todas as comandas:{" "}
+                          <span className="text-brand-primary font-normal">
+                            {formatPrice(totalAll)}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
               {order.name && (

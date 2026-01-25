@@ -558,6 +558,7 @@ export function Orders({ token }: OrdersProps) {
           await fetchOrders(false);
         }}
         token={token}
+        onSelectOrder={(orderId) => setSelectedOrder(orderId)}
       />
     </div>
   );

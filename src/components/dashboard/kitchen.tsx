@@ -469,6 +469,7 @@ export function Kitchen({ token }: KitchenProps) {
         }}
         token={token}
         isKitchen={true}
+        onSelectOrder={(orderId) => setSelectedOrder(orderId)}
       />
     </div>
   );
