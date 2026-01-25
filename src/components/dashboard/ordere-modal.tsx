@@ -686,9 +686,9 @@ export function OrderModal({
   if (mode === "panel") {
     return (
       <>
-        <div className="bg-[#1F1E1E] text-white h-full flex flex-col border border-app-border rounded-lg">
+        <div className="bg-[#1F1E1E] text-white h-full flex flex-col border border-app-border rounded-lg shadow-none">
           <div className="px-6 pt-6 pb-4 flex-shrink-0">
-            <h2 className="text-2xl font-normal tracking-tight text-white">
+            <h2 className="text-2xl font-light tracking-tight text-white">
               Detalhe do pedido
             </h2>
             <p className="sr-only">
@@ -698,15 +698,15 @@ export function OrderModal({
 
           {loading ? (
             <div className="flex items-center justify-center py-8 px-6">
-              <p className="text-gray-600">Carregando...</p>
+              <p className="text-white/70">Carregando...</p>
             </div>
           ) : order ? (
             <div className="px-6 pb-4 overflow-y-auto flex-1 space-y-6">
               {/* Informações do pedido */}
               <div className="grid grid-cols-1 gap-4">
                 <div>
-                  <p className="text-sm text-gray-600 mb-1">Modalidade</p>
-                  <p className="text-lg font-normal">
+                  <p className="text-sm text-white/80 mb-1">Modalidade</p>
+                  <p className="text-lg text-white">
                     {order.orderType === "MESA" 
                       ? `Pedido na Mesa ${order.table ? order.table : ""}${(order.comanda || order.commandNumber || comandaValue) ? ` - ${(order.comanda || order.commandNumber || comandaValue).toString().trim()}` : ""}` 
                       : `Pedido no Balcão${order.name ? ` - ${order.name}` : ""}`}
@@ -715,7 +715,12 @@ export function OrderModal({
                 {order.orderType === "MESA" && (
                   <div>
                     <div className="mt-1">
-                      <OrderForm triggerLabel="Nova comanda" defaultType="MESA" defaultTable={order.table} />
+                      <OrderForm
+                        triggerLabel="Nova comanda"
+                        defaultType="MESA"
+                        defaultTable={order.table}
+                        buttonClassName="bg-[#FFA500] hover:bg-[#FFA500]/90 text-black"
+                      />
                     </div>
                     {(() => {
                       if (!order.table) return null;
@@ -754,25 +759,25 @@ export function OrderModal({
 
                       return (
                         <div className="mt-4 space-y-2">
-                          <p className="text-sm text-gray-600">Comandas</p>
+                          <p className="text-sm text-white/80">Comandas</p>
                           <div className="flex flex-wrap gap-2">
                             {entries.map((entry) => (
                               <button
                                 key={entry.label}
                                 type="button"
-                                className="px-3 py-1 rounded bg-gray-100 text-sm hover:bg-gray-200"
+                              className="px-3 py-1 rounded bg-white/10 text-sm hover:bg-white/20 text-white"
                                 onClick={() => onSelectOrder && onSelectOrder(entry.orderId)}
                               >
                                 {entry.label} - {formatPrice(entry.total)}
                               </button>
                             ))}
                           </div>
-                          <p className="text-xs text-gray-500">
+                        <p className="text-xs text-white/70">
                             Clique em uma comanda para abrir o consumo individual e use “Receber” para pagar separadamente.
                           </p>
-                          <div className="text-sm text-gray-600">
+                        <div className="text-sm text-white/80">
                             Total de todas as comandas:{" "}
-                            <span className="text-brand-primary font-normal">
+                          <span className="text-white">
                               {formatPrice(totalAll)}
                             </span>
                           </div>
@@ -796,15 +801,15 @@ export function OrderModal({
                 <div>
                   <p className="text-sm text-gray-600 mb-1">Status</p>
                   {order.status ? (
-                    <span className="inline-block px-3 py-1 bg-green-500/20 text-green-500 rounded-full font-medium text-xs">
+                    <span className="inline-block px-3 py-1 bg-green-500/20 text-white rounded-full text-xs">
                       Finalizado
                     </span>
                   ) : order.draft ? (
-                    <span className="inline-block px-3 py-1 bg-green-500/20 text-green-500 rounded-full font-medium text-xs">
+                    <span className="inline-block px-3 py-1 bg-green-500/20 text-white rounded-full text-xs">
                       Aberto
                     </span>
                   ) : (
-                    <span className="inline-block px-3 py-1 bg-orange-500/20 text-orange-500 rounded-full font-medium text-xs">
+                    <span className="inline-block px-3 py-1 bg-orange-500/20 text-white rounded-full text-xs">
                       Em produção
                     </span>
                   )}
@@ -819,7 +824,7 @@ export function OrderModal({
                     <Button
                       size="sm"
                       onClick={() => setShowAddItem(true)}
-                      className="bg-brand-primary hover:bg-brand-primary/90 text-black tech-shadow tech-hover font-normal"
+                      className="bg-[#FFA500] hover:bg-[#FFA500]/90 text-black tech-shadow tech-hover font-normal"
                     >
                       <Plus className="w-4 h-4 mr-1 icon-3d" />
                       Adicionar Item
@@ -838,7 +843,7 @@ export function OrderModal({
                         <div
                           key={groupedItem.product.id}
                           className={cn(
-                            "bg-white rounded-lg p-4 border transition-colors text-black",
+                            "bg-[#2B2A2A] rounded-lg p-4 border transition-colors text-white shadow-none",
                             isSelected && !isKitchen && order.draft
                               ? "border-green-500 bg-green-50/30"
                               : someSelected && !isKitchen && order.draft
@@ -872,21 +877,21 @@ export function OrderModal({
                               </h4>
                               {!isKitchen && (
                                 <>
-                              <p className="text-sm text-gray-600 mt-2">
+                                  <p className="text-sm text-white/70 mt-2">
                                     {groupedItem.product.description || "-"}
                                   </p>
-                              <p className="text-sm text-gray-600 mt-2">
+                                  <p className="text-sm text-white/70 mt-2">
                                     {formatPrice(groupedItem.product.price)} x {groupedItem.totalAmount}
                                   </p>
                                 </>
                               )}
                             </div>
                             <div className="text-right ml-4">
-                              <p className="text-sm text-gray-600 mb-1">
+                              <p className="text-sm text-white/70 mb-1">
                                 Quantidade: {groupedItem.totalAmount}
                               </p>
                               {!isKitchen && (
-                                <p className="font-normal text-lg">
+                                <p className="font-normal text-lg text-white">
                                   Subtotal: {formatPrice(subtotal)}
                                 </p>
                               )}
@@ -896,7 +901,7 @@ export function OrderModal({
                       );
                     })
                   ) : (
-                    <p className="text-gray-300 text-center py-4">
+                    <p className="text-white/70 text-center py-4">
                       Nenhum item no pedido
                     </p>
                   )}
@@ -908,14 +913,14 @@ export function OrderModal({
                 <div className="border-t border-app-border pt-4 space-y-2 text-white">
                   {order.draft && selectedItems.size > 0 && selectedItems.size < (order.items?.length || 0) && (
                     <div className="flex justify-between items-center">
-                      <span className="text-lg font-normal text-gray-300">Total Selecionado</span>
-                      <span className="text-xl font-normal text-orange-500">
+                      <span className="text-lg font-normal text-white/80">Total Selecionado</span>
+                      <span className="text-xl font-normal text-white">
                         {formatPrice(calculateSelectedTotal())}
                       </span>
                     </div>
                   )}
                   <div className="flex justify-between items-center">
-                    <span className="text-xl font-normal">Total</span>
+                    <span className="text-xl font-normal text-white">Total</span>
                     <span className="text-2xl font-normal text-white">
                       {formatPrice(Math.max(0, calculateTotal() - partialPaidCents))}
                     </span>
@@ -924,7 +929,7 @@ export function OrderModal({
               )}
             </div>
           ) : (
-            <div className="flex items-center justify-center py-10 px-6 text-gray-500">
+            <div className="flex items-center justify-center py-10 px-6 text-white/70">
               Selecione uma mesa ou balcão para visualizar os detalhes.
             </div>
           )}
@@ -1494,20 +1499,20 @@ export function OrderModal({
                   })()}
                 </div>
               )}
-              {order.name && (
+                {order.name && (
+                  <div>
+                    <p className="text-sm text-white/80 mb-1">Cliente</p>
+                    <p className="text-lg text-white">{order.name}</p>
+                  </div>
+                )}
+                {order.phone && (
+                  <div>
+                    <p className="text-sm text-white/80 mb-1">Telefone</p>
+                    <p className="text-lg text-white">{order.phone}</p>
+                  </div>
+                )}
                 <div>
-                  <p className="text-sm text-gray-300 mb-1">Cliente</p>
-                  <p className="text-lg font-normal text-white">{order.name}</p>
-                </div>
-              )}
-              {order.phone && (
-                <div>
-                  <p className="text-sm text-gray-300 mb-1">Telefone</p>
-                  <p className="text-lg font-normal text-white">{order.phone}</p>
-                </div>
-              )}
-              <div>
-                  <p className="text-sm text-gray-300 mb-1">Status</p>
+                  <p className="text-sm text-white/80 mb-1">Status</p>
                 {order.status ? (
                   <span className="inline-block px-3 py-1 bg-green-500/20 text-green-500 rounded-full font-medium text-xs">
                     Finalizado

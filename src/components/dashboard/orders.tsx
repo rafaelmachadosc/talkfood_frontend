@@ -356,7 +356,7 @@ export function Orders({ token }: OrdersProps) {
                   .filter((g) => filterGroupByTerm(g, searchBalcao, "BALCAO"));
                 
                 return balcaoGroups.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-12 bg-white rounded-lg border-2 border-dashed border-app-border">
+                  <div className="flex flex-col items-center justify-center py-12 bg-white rounded-lg border-2 border-dashed border-app-border shadow-none">
                     <ShoppingCart className="w-12 h-12 text-gray-400 mb-3" />
                     <p className="text-center text-gray-600 font-normal">Nenhum pedido de balcão encontrado</p>
                     <p className="text-center text-gray-500 text-sm mt-1">Os pedidos do balcão aparecerão aqui</p>
@@ -377,7 +377,7 @@ export function Orders({ token }: OrdersProps) {
                     <Card
                       key={group.key}
                       className={cn(
-                        "bg-white text-black tech-shadow tech-hover transition-all duration-300 cursor-pointer border-2 border-cyan-400 w-full h-[72px]",
+                        "bg-white text-black transition-all duration-300 cursor-pointer border-2 border-cyan-400 w-full h-[72px] shadow-none",
                         group.hasNewOrders || group.hasInProduction || group.hasOpen ? "shadow-md" : ""
                       )}
                       onClick={() => setSelectedOrder(group.orders[0]?.id || null)}
@@ -468,7 +468,7 @@ export function Orders({ token }: OrdersProps) {
                           key={`MESA_${tableNumber}`}
                           className="relative transition-all duration-300"
                         >
-                          <Card className="bg-white text-black tech-shadow tech-hover border-2 border-gray-200 w-full h-[72px] p-0">
+                          <Card className="bg-white text-black border-2 border-gray-200 w-full h-[72px] p-0 shadow-none">
                             <div className="p-3.5 h-full grid grid-cols-3 items-center gap-3">
                               <CardTitle className="text-sm font-normal tracking-tight text-left">
                                 <span className="font-semibold">
@@ -521,7 +521,7 @@ export function Orders({ token }: OrdersProps) {
                             }
                           }}
                         >
-                          <Card className="bg-white text-black tech-shadow tech-hover w-full border-2 border-green-400 h-[72px] p-0">
+                          <Card className="bg-white text-black w-full border-2 border-green-400 h-[72px] p-0 shadow-none">
                             <div className="p-3.5 h-full grid grid-cols-3 items-center gap-3">
                               <div className="flex flex-col gap-0.5 text-left">
                               <CardTitle className="text-sm font-normal tracking-tight">
