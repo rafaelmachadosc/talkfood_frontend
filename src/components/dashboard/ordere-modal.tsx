@@ -687,14 +687,14 @@ export function OrderModal({
     return (
       <>
         <div className="bg-[#1F1E1E] text-white h-full flex flex-col border border-app-border rounded-lg">
-          <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0">
-        <DialogTitle className="text-2xl font-normal tracking-tight text-white">
+          <div className="px-6 pt-6 pb-4 flex-shrink-0">
+            <h2 className="text-2xl font-normal tracking-tight text-white">
               Detalhe do pedido
-            </DialogTitle>
-            <DialogDescription className="sr-only">
+            </h2>
+            <p className="sr-only">
               Visualize e gerencie os detalhes do pedido, adicione itens, envie para produção ou receba o pagamento
-            </DialogDescription>
-          </DialogHeader>
+            </p>
+          </div>
 
           {loading ? (
             <div className="flex items-center justify-center py-8 px-6">
