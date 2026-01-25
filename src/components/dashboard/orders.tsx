@@ -416,7 +416,7 @@ export function Orders({ token }: OrdersProps) {
           </div>
 
           {/* Painel central fixo */}
-          <div className="lg:sticky lg:top-4 h-[calc(130vh-200px)]">
+          <div className="lg:sticky lg:top-4 h-[calc(100vh-170px)]">
             <OrderModal
               orderId={selectedOrder}
               onClose={async () => {
