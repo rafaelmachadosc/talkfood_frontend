@@ -428,6 +428,7 @@ export function Orders({ token }: OrdersProps) {
               orderId={selectedOrder}
               onClose={async () => {
                 await fetchOrders(false);
+                setSelectedOrder(null);
               }}
               token={token}
               mode="panel"

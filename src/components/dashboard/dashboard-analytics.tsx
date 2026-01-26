@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { apiClient } from "@/lib/api";
 import { formatPrice } from "@/lib/format";
+import { CalendarDays, CalendarClock, CalendarRange, Clock, Wallet, QrCode, CreditCard } from "lucide-react";
 
 interface DashboardAnalyticsProps {
   token: string;
@@ -179,51 +180,75 @@ export function DashboardAnalytics({ token }: DashboardAnalyticsProps) {
         <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[#9FC131]/40 to-transparent" />
       </div>
 
-      <Card className="bg-white border border-app-border rounded-lg shadow-none">
+      <Card className="bg-white border border-app-border rounded-lg shadow-none overflow-hidden">
+        <div className="h-1 bg-gradient-to-r from-[#9FC131] via-[#9FC131]/60 to-transparent" />
         <CardContent className="p-4 space-y-2">
-          <div className="text-sm text-black text-center">Vendas</div>
+          <div className="text-xs text-black text-center tracking-wide uppercase">Vendas</div>
           <div className="flex items-center justify-between text-sm text-black">
-            <span>Hoje</span>
+            <div className="flex items-center gap-2">
+              <Clock className="w-3.5 h-3.5 text-[#9FC131]" />
+              <span>Hoje</span>
+            </div>
             <span className="text-[#FFA500]">{formatPrice(metrics.totalToday)}</span>
           </div>
           <div className="flex items-center justify-between text-sm text-black">
-            <span>7 dias</span>
+            <div className="flex items-center gap-2">
+              <CalendarDays className="w-3.5 h-3.5 text-[#9FC131]" />
+              <span>7 dias</span>
+            </div>
             <span className="text-[#FFA500]">{formatPrice(total7Days)}</span>
           </div>
           <div className="flex items-center justify-between text-sm text-black">
-            <span>15 dias</span>
+            <div className="flex items-center gap-2">
+              <CalendarRange className="w-3.5 h-3.5 text-[#9FC131]" />
+              <span>15 dias</span>
+            </div>
             <span className="text-[#FFA500]">{formatPrice(total15Days)}</span>
           </div>
           <div className="flex items-center justify-between text-sm text-black">
-            <span>30 dias</span>
+            <div className="flex items-center gap-2">
+              <CalendarClock className="w-3.5 h-3.5 text-[#9FC131]" />
+              <span>30 dias</span>
+            </div>
             <span className="text-[#FFA500]">{formatPrice(total30Days)}</span>
           </div>
           <div className="flex items-center justify-between text-sm text-black pt-2 border-t border-app-border">
             <span>Total:</span>
-            <span className="text-[#FFA500]">
-              {formatPrice(metrics.totalToday + total7Days + total15Days + total30Days)}
-            </span>
+            <span className="text-[#FFA500]">{formatPrice(total30Days)}</span>
           </div>
         </CardContent>
       </Card>
 
-      <Card className="bg-white border border-app-border rounded-lg shadow-none">
+      <Card className="bg-white border border-app-border rounded-lg shadow-none overflow-hidden">
+        <div className="h-1 bg-gradient-to-r from-[#FFA500] via-[#FFA500]/60 to-transparent" />
         <CardContent className="p-4 space-y-2">
-          <div className="text-sm text-black text-center">Vendas</div>
+          <div className="text-xs text-black text-center tracking-wide uppercase">Vendas</div>
           <div className="flex items-center justify-between text-sm text-black">
-            <span>Pix</span>
+            <div className="flex items-center gap-2">
+              <QrCode className="w-3.5 h-3.5 text-[#9FC131]" />
+              <span>Pix</span>
+            </div>
             <span className="text-[#FFA500]">{formatPrice(metrics.paymentMethods?.PIX || 0)}</span>
           </div>
           <div className="flex items-center justify-between text-sm text-black">
-            <span>Dinheiro</span>
+            <div className="flex items-center gap-2">
+              <Wallet className="w-3.5 h-3.5 text-[#9FC131]" />
+              <span>Dinheiro</span>
+            </div>
             <span className="text-[#FFA500]">{formatPrice(metrics.paymentMethods?.DINHEIRO || 0)}</span>
           </div>
           <div className="flex items-center justify-between text-sm text-black">
-            <span>Crédito</span>
+            <div className="flex items-center gap-2">
+              <CreditCard className="w-3.5 h-3.5 text-[#9FC131]" />
+              <span>Crédito</span>
+            </div>
             <span className="text-[#FFA500]">{formatPrice(metrics.paymentMethods?.CARTAO_CREDITO || 0)}</span>
           </div>
           <div className="flex items-center justify-between text-sm text-black">
-            <span>Débito</span>
+            <div className="flex items-center gap-2">
+              <CreditCard className="w-3.5 h-3.5 text-[#9FC131]" />
+              <span>Débito</span>
+            </div>
             <span className="text-[#FFA500]">{formatPrice(metrics.paymentMethods?.CARTAO_DEBITO || 0)}</span>
           </div>
           <div className="flex items-center justify-between text-sm text-black pt-2 border-t border-app-border">
