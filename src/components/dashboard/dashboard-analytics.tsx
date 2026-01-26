@@ -148,92 +148,92 @@ export function DashboardAnalytics({ token }: DashboardAnalyticsProps) {
         <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[#9FC131]/40 to-transparent" />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="bg-[#0F1216] border border-[#1E2530] shadow-[0_0_20px_rgba(159,193,49,0.15)]">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-normal tracking-wider text-[#9FC131]">Vendas Hoje</CardTitle>
+      <div className="grid grid-cols-2 gap-3">
+        <Card className="bg-[#0F1216] border border-[#1E2530] rounded-lg shadow-[0_0_18px_rgba(159,193,49,0.12)]">
+          <CardHeader className="flex flex-row items-center justify-between p-2 pb-1">
+            <CardTitle className="text-[11px] font-normal text-[#9FC131]">Vendas Hoje</CardTitle>
             <DollarSign className="w-4 h-4 text-[#9FC131]" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-normal text-white">{formatPrice(metrics.totalToday)}</div>
+          <CardContent className="p-2 pt-0">
+            <div className="text-sm font-normal text-white">{formatPrice(metrics.totalToday)}</div>
           </CardContent>
         </Card>
 
-        <Card className="bg-[#0F1216] border border-[#1E2530] shadow-[0_0_20px_rgba(159,193,49,0.15)]">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-normal tracking-wider text-[#9FC131]">Vendas 7 Dias</CardTitle>
+        <Card className="bg-[#0F1216] border border-[#1E2530] rounded-lg shadow-[0_0_18px_rgba(159,193,49,0.12)]">
+          <CardHeader className="flex flex-row items-center justify-between p-2 pb-1">
+            <CardTitle className="text-[11px] font-normal text-[#9FC131]">Vendas 7 Dias</CardTitle>
             <CalendarDays className="w-4 h-4 text-[#9FC131]" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-normal text-white">{formatPrice(total7Days)}</div>
+          <CardContent className="p-2 pt-0">
+            <div className="text-sm font-normal text-white">{formatPrice(total7Days)}</div>
           </CardContent>
         </Card>
 
-        <Card className="bg-[#0F1216] border border-[#1E2530] shadow-[0_0_20px_rgba(159,193,49,0.15)]">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-normal tracking-wider text-[#9FC131]">Vendas 15 Dias</CardTitle>
+        <Card className="bg-[#0F1216] border border-[#1E2530] rounded-lg shadow-[0_0_18px_rgba(159,193,49,0.12)]">
+          <CardHeader className="flex flex-row items-center justify-between p-2 pb-1">
+            <CardTitle className="text-[11px] font-normal text-[#9FC131]">Vendas 15 Dias</CardTitle>
             <CalendarRange className="w-4 h-4 text-[#9FC131]" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-normal text-white">{formatPrice(total15Days)}</div>
+          <CardContent className="p-2 pt-0">
+            <div className="text-sm font-normal text-white">{formatPrice(total15Days)}</div>
           </CardContent>
         </Card>
 
-        <Card className="bg-[#0F1216] border border-[#1E2530] shadow-[0_0_20px_rgba(159,193,49,0.15)]">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-normal tracking-wider text-[#9FC131]">Vendas 30 Dias</CardTitle>
+        <Card className="bg-[#0F1216] border border-[#1E2530] rounded-lg shadow-[0_0_18px_rgba(159,193,49,0.12)]">
+          <CardHeader className="flex flex-row items-center justify-between p-2 pb-1">
+            <CardTitle className="text-[11px] font-normal text-[#9FC131]">Vendas 30 Dias</CardTitle>
             <CalendarClock className="w-4 h-4 text-[#9FC131]" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-normal text-white">{formatPrice(total30Days)}</div>
+          <CardContent className="p-2 pt-0">
+            <div className="text-sm font-normal text-white">{formatPrice(total30Days)}</div>
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="bg-[#0F1216] border border-[#1E2530] shadow-[0_0_20px_rgba(159,193,49,0.15)]">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-normal tracking-wider text-[#9FC131]">Vendas em Dinheiro</CardTitle>
+      <div className="grid grid-cols-2 gap-3">
+        <Card className="bg-[#0F1216] border border-[#1E2530] rounded-lg shadow-[0_0_18px_rgba(159,193,49,0.12)]">
+          <CardHeader className="flex flex-row items-center justify-between p-2 pb-1">
+            <CardTitle className="text-[11px] font-normal text-[#9FC131]">Vendas em Dinheiro</CardTitle>
             <Wallet className="w-4 h-4 text-[#9FC131]" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-normal text-white">
+          <CardContent className="p-2 pt-0">
+            <div className="text-sm font-normal text-white">
               {formatPrice(metrics.paymentMethods?.DINHEIRO || 0)}
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-[#0F1216] border border-[#1E2530] shadow-[0_0_20px_rgba(159,193,49,0.15)]">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-normal tracking-wider text-[#9FC131]">Vendas em Pix</CardTitle>
+        <Card className="bg-[#0F1216] border border-[#1E2530] rounded-lg shadow-[0_0_18px_rgba(159,193,49,0.12)]">
+          <CardHeader className="flex flex-row items-center justify-between p-2 pb-1">
+            <CardTitle className="text-[11px] font-normal text-[#9FC131]">Vendas em Pix</CardTitle>
             <QrCode className="w-4 h-4 text-[#9FC131]" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-normal text-white">
+          <CardContent className="p-2 pt-0">
+            <div className="text-sm font-normal text-white">
               {formatPrice(metrics.paymentMethods?.PIX || 0)}
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-[#0F1216] border border-[#1E2530] shadow-[0_0_20px_rgba(159,193,49,0.15)]">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-normal tracking-wider text-[#9FC131]">Vendas em Cartão C.</CardTitle>
+        <Card className="bg-[#0F1216] border border-[#1E2530] rounded-lg shadow-[0_0_18px_rgba(159,193,49,0.12)]">
+          <CardHeader className="flex flex-row items-center justify-between p-2 pb-1">
+            <CardTitle className="text-[11px] font-normal text-[#9FC131]">Vendas em Cartão C.</CardTitle>
             <CreditCard className="w-4 h-4 text-[#9FC131]" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-normal text-white">
+          <CardContent className="p-2 pt-0">
+            <div className="text-sm font-normal text-white">
               {formatPrice(metrics.paymentMethods?.CARTAO_CREDITO || 0)}
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-[#0F1216] border border-[#1E2530] shadow-[0_0_20px_rgba(159,193,49,0.15)]">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-normal tracking-wider text-[#9FC131]">Vendas em Cartão D.</CardTitle>
+        <Card className="bg-[#0F1216] border border-[#1E2530] rounded-lg shadow-[0_0_18px_rgba(159,193,49,0.12)]">
+          <CardHeader className="flex flex-row items-center justify-between p-2 pb-1">
+            <CardTitle className="text-[11px] font-normal text-[#9FC131]">Vendas em Cartão D.</CardTitle>
             <CreditCard className="w-4 h-4 text-[#9FC131]" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-normal text-white">
+          <CardContent className="p-2 pt-0">
+            <div className="text-sm font-normal text-white">
               {formatPrice(metrics.paymentMethods?.CARTAO_DEBITO || 0)}
             </div>
           </CardContent>
