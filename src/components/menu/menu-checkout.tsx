@@ -37,10 +37,44 @@ export function MenuCheckout({
   onSuccess,
 }: MenuCheckoutProps) {
   const [table, setTable] = useState("");
-  const [name, setName] = useState("");
+  const [comanda, setComanda] = useState("");
   const [phone, setPhone] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+
+  function printRawData(rawData: string) {
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) {
+      alert("Não foi possível abrir a janela de impressão.");
+      return;
+    }
+    printWindow.document.write(
+      `<html><head><title>Cupom</title></head><body><pre style="font-family: monospace; font-size: 12px;">${rawData}</pre><script>window.print();</script></body></html>`
+    );
+    printWindow.document.close();
+  }
+
+  async function handlePrintReceipt(orderId: string) {
+    try {
+      const response = await fetch("/api/print/receipt", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          orderId,
+          receiptType: "ORDER",
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data?.success || !data?.rawData) {
+        return;
+      }
+      printRawData(data.rawData);
+    } catch {
+      // impressão é opcional; não interromper o fluxo do pedido
+    }
+  }
 
   function formatPhone(value: string) {
     const numbers = value.replace(/\D/g, "");
@@ -64,7 +98,7 @@ export function MenuCheckout({
     setError("");
     setIsLoading(true);
 
-    if (!table || !name) {
+    if (!table || !comanda) {
       setError("Por favor, preencha todos os campos obrigatórios");
       setIsLoading(false);
       return;
@@ -94,15 +128,19 @@ export function MenuCheckout({
       const result = await createPublicOrderAction({
         orderType: "MESA",
         table: Number(table),
-        name,
+        name: comanda,
+        comanda,
         phone: phone || undefined,
         items: validItems,
       });
 
       if (result.success) {
         onSuccess(result.orderId, Number(table), phone || undefined);
+        if (result.orderId) {
+          await handlePrintReceipt(result.orderId);
+        }
         setTable("");
-        setName("");
+        setComanda("");
         setPhone("");
         setError("");
       } else {
@@ -117,12 +155,12 @@ export function MenuCheckout({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-app-card border-app-border text-black max-w-md">
+      <DialogContent className="bg-app-card border-app-border text-black max-w-lg">
         <DialogHeader>
-          <DialogTitle className="text-2xl sm:text-3xl font-normal text-black tracking-tight">
+          <DialogTitle className="text-3xl sm:text-4xl font-normal text-black tracking-tight">
             Solicitar Pedido
           </DialogTitle>
-          <DialogDescription className="text-gray-600 text-base">
+          <DialogDescription className="text-gray-600 text-lg">
             Preencha os dados para solicitar seu pedido
           </DialogDescription>
         </DialogHeader>
@@ -138,7 +176,7 @@ export function MenuCheckout({
               type="number"
               required
               placeholder="Ex: 5"
-              className="border-app-border bg-white text-black text-base"
+              className="border-app-border bg-white text-black text-lg py-3"
               value={table}
               onChange={(e) => setTable(e.target.value)}
               min="1"
@@ -147,16 +185,16 @@ export function MenuCheckout({
 
           <div>
             <Label htmlFor="name" className="mb-2">
-              Nome *
+              Comanda (Nome ou número) *
             </Label>
             <Input
-              id="name"
-              name="name"
+              id="comanda"
+              name="comanda"
               required
-              placeholder="Seu nome"
-              className="border-app-border bg-white text-black text-base"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+              placeholder="Ex: Rafael ou 12"
+              className="border-app-border bg-white text-black text-lg py-3"
+              value={comanda}
+              onChange={(e) => setComanda(e.target.value)}
             />
           </div>
 
@@ -169,7 +207,7 @@ export function MenuCheckout({
               name="phone"
               type="tel"
               placeholder="(00) 00000-0000"
-              className="border-app-border bg-white text-black text-base"
+              className="border-app-border bg-white text-black text-lg py-3"
               value={phone}
               onChange={handlePhoneChange}
               maxLength={15}
@@ -178,8 +216,8 @@ export function MenuCheckout({
 
           <div className="border-t border-app-border pt-4">
             <div className="flex justify-between items-center mb-4">
-              <span className="text-lg font-normal">Total do Pedido</span>
-              <span className="text-xl font-normal text-brand-primary">
+              <span className="text-xl font-normal">Total do Pedido</span>
+              <span className="text-2xl font-normal text-brand-primary">
                 {formatPrice(total)}
               </span>
             </div>
@@ -207,19 +245,19 @@ export function MenuCheckout({
               type="button"
               variant="outline"
               onClick={onClose}
-              className="flex-1 border-app-border hover:bg-transparent text-base py-3"
+              className="flex-1 border-app-border hover:bg-transparent text-lg py-4"
               disabled={isLoading}
             >
               Cancelar
             </Button>
             <Button
               type="submit"
-              disabled={isLoading || !table || !name || !cart || cart.length === 0}
-              className="flex-1 bg-brand-primary hover:bg-brand-primary/90 text-black tech-shadow tech-hover font-normal text-base py-3"
+              disabled={isLoading || !table || !comanda || !cart || cart.length === 0}
+              className="flex-1 bg-brand-primary hover:bg-brand-primary/90 text-black tech-shadow tech-hover font-normal text-lg py-4"
             >
               {isLoading ? (
                 <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin icon-3d" />
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin icon-3d" />
                   Processando...
                 </>
               ) : (

@@ -38,12 +38,12 @@ export function MenuCart({
 }: MenuCartProps) {
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="w-full sm:max-w-md bg-app-card border-app-border text-black overflow-y-auto">
+      <DialogContent className="w-full sm:max-w-lg bg-app-card border-app-border text-black overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-2xl sm:text-3xl font-normal text-black tracking-tight">
+          <DialogTitle className="text-3xl sm:text-4xl font-normal text-black tracking-tight">
             Comanda
           </DialogTitle>
-          <DialogDescription className="text-gray-600 text-base">
+          <DialogDescription className="text-gray-600 text-lg">
             Revise seus itens antes de solicitar o pedido
           </DialogDescription>
         </DialogHeader>
@@ -62,12 +62,12 @@ export function MenuCart({
                     key={item.product.id}
                     className="bg-app-background rounded-lg p-4 border border-app-border"
                   >
-                    <div className="flex items-start justify-between mb-2">
+                    <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">
-                        <h3 className="font-normal text-black text-lg">
+                        <h3 className="font-normal text-black text-xl">
                           {item.product.name}
                         </h3>
-                        <p className="text-base text-gray-600 mt-1">
+                        <p className="text-lg text-gray-600 mt-2">
                           {formatPrice(item.product.price)} cada
                         </p>
                       </div>
@@ -75,9 +75,9 @@ export function MenuCart({
                         variant="ghost"
                         size="icon"
                         onClick={() => onRemove(item.product.id)}
-                        className="h-8 w-8 text-gray-600 hover:text-black"
+                        className="h-10 w-10 text-gray-600 hover:text-black"
                       >
-                        <X className="w-4 h-4 icon-3d" />
+                        <X className="w-5 h-5 icon-3d" />
                       </Button>
                     </div>
 
@@ -92,11 +92,11 @@ export function MenuCart({
                               item.quantity - 1
                             )
                           }
-                          className="h-9 w-9 border-app-border"
+                          className="h-11 w-11 border-app-border"
                         >
-                          <Minus className="w-4 h-4 icon-3d" />
+                          <Minus className="w-5 h-5 icon-3d" />
                         </Button>
-                        <span className="w-8 text-center font-normal text-base">
+                        <span className="w-10 text-center font-normal text-lg">
                           {item.quantity}
                         </span>
                         <Button
@@ -108,12 +108,12 @@ export function MenuCart({
                               item.quantity + 1
                             )
                           }
-                          className="h-9 w-9 border-app-border"
+                          className="h-11 w-11 border-app-border"
                         >
-                          <Plus className="w-4 h-4 icon-3d" />
+                          <Plus className="w-5 h-5 icon-3d" />
                         </Button>
                       </div>
-                      <span className="font-normal text-brand-primary text-lg">
+                      <span className="font-normal text-brand-primary text-xl">
                         {formatPrice(item.product.price * item.quantity)}
                       </span>
                     </div>
@@ -122,15 +122,15 @@ export function MenuCart({
               </div>
 
               <div className="border-t border-app-border pt-4 mt-6">
-                <div className="flex justify-between items-center mb-4">
-                  <span className="text-lg font-normal">Total</span>
-                  <span className="text-2xl font-normal text-brand-primary">
+                <div className="flex justify-between items-center mb-5">
+                  <span className="text-xl font-normal">Total</span>
+                  <span className="text-3xl font-normal text-brand-primary">
                     {formatPrice(total)}
                   </span>
                 </div>
                 <Button
                   onClick={onCheckout}
-                  className="w-full bg-brand-primary hover:bg-brand-primary/90 text-black tech-shadow tech-hover font-normal text-base py-3"
+                  className="w-full bg-brand-primary hover:bg-brand-primary/90 text-black tech-shadow tech-hover font-normal text-xl py-4"
                 >
                   Solicitar Pedido
                 </Button>

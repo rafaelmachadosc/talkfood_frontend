@@ -131,7 +131,7 @@ export default function MenuPage() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <Logo width={180} height={54} className="h-12 w-auto" />
+              <Logo width={220} height={66} className="h-16 w-auto" />
             </div>
             <div className="flex items-center gap-2">
               {savedTable && savedPhone && (
@@ -140,20 +140,20 @@ export default function MenuPage() {
                     window.location.href = `/comanda?table=${savedTable}&phone=${savedPhone}`;
                   }}
                   variant="outline"
-                  className="border-app-border hover:bg-gray-100 text-black tech-shadow tech-hover font-normal text-base px-4 py-2"
+                  className="border-app-border hover:bg-gray-100 text-black tech-shadow tech-hover font-normal text-lg px-6 py-3"
                 >
-                  <Receipt className="w-5 h-5 mr-2 icon-3d" />
+                  <Receipt className="w-6 h-6 mr-2 icon-3d" />
                   Minha Comanda
                 </Button>
               )}
               <Button
                 onClick={() => setShowCart(true)}
-                className="bg-brand-primary hover:bg-brand-primary/90 text-black tech-shadow tech-hover font-normal relative text-xl px-8 py-4"
+                className="bg-brand-primary hover:bg-brand-primary/90 text-black tech-shadow tech-hover font-normal relative text-2xl px-10 py-5"
               >
-                <ShoppingCart className="w-6 h-6 mr-2 icon-3d" />
+                <ShoppingCart className="w-7 h-7 mr-3 icon-3d" />
                 Comanda
                 {cartItemCount > 0 && (
-                  <span className="ml-2 bg-white text-brand-primary rounded-full px-2 py-0.5 text-xs font-normal">
+                  <span className="ml-3 bg-white text-brand-primary rounded-full px-3 py-1 text-sm font-normal">
                     {cartItemCount}
                   </span>
                 )}
@@ -173,7 +173,7 @@ export default function MenuPage() {
                 key={category}
                 variant={selectedCategory === category ? "default" : "outline"}
                 onClick={() => setSelectedCategory(category)}
-                className={`text-lg px-6 py-3 ${
+                className={`text-xl px-8 py-4 ${
                   selectedCategory === category
                     ? "bg-brand-primary text-black"
                     : "border-app-border text-black hover:bg-gray-100"
@@ -191,31 +191,32 @@ export default function MenuPage() {
             <p className="text-gray-600 text-lg">Nenhum produto disponível</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredProducts.map((product) => (
               <Card
                 key={product.id}
                 className="bg-app-card border-app-border tech-shadow tech-hover hover:border-brand-primary/30"
               >
                 <CardHeader>
-                  <CardTitle className="text-xl sm:text-2xl">{product.name}</CardTitle>
+                  <CardTitle className="text-2xl sm:text-3xl">{product.name}</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex flex-col gap-2">
-                    <p className="text-base sm:text-lg text-gray-700 line-clamp-2 self-end text-right max-w-[85%]">
+                <CardContent className="space-y-5">
+                  <div className="flex flex-col gap-3">
+                    <div className="w-full border-t border-app-border" />
+                    <p className="text-lg sm:text-xl text-gray-700 line-clamp-2 self-end text-right max-w-[85%]">
                       {product.description || "-"}
                     </p>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-xl sm:text-2xl font-normal text-brand-primary">
+                    <span className="text-2xl sm:text-3xl font-normal text-brand-primary">
                       {formatPrice(product.price)}
                     </span>
                     <Button
                       onClick={() => addToCart(product)}
                       size="sm"
-                      className="bg-brand-primary hover:bg-brand-primary/90 text-black tech-shadow tech-hover font-normal text-lg px-6 py-3"
+                      className="bg-brand-primary hover:bg-brand-primary/90 text-black tech-shadow tech-hover font-normal text-xl px-8 py-4"
                     >
-                      <Plus className="w-5 h-5 mr-2 icon-3d" />
+                      <Plus className="w-6 h-6 mr-2 icon-3d" />
                       Adicionar
                     </Button>
                   </div>

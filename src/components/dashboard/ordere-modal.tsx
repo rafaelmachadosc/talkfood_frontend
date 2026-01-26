@@ -734,6 +734,44 @@ export function OrderModal({
     }
   };
 
+  const printRawData = (rawData: string) => {
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) {
+      alert("Não foi possível abrir a janela de impressão.");
+      return;
+    }
+    printWindow.document.write(
+      `<html><head><title>Cupom</title></head><body><pre style="font-family: monospace; font-size: 12px;">${rawData}</pre><script>window.print();</script></body></html>`
+    );
+    printWindow.document.close();
+  };
+
+  const handlePrintReceipt = async () => {
+    if (!orderId) return;
+    try {
+      const response = await fetch("/api/print/receipt", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          orderId,
+          receiptType: "ORDER",
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data?.success || !data?.rawData) {
+        const message = data?.error || "Falha ao gerar cupom.";
+        alert(message);
+        return;
+      }
+      printRawData(data.rawData);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Erro ao imprimir cupom.");
+    }
+  };
+
   if (mode === "panel") {
     return (
       <>
@@ -1100,6 +1138,14 @@ export function OrderModal({
                 <>
                   <Button
                     variant="outline"
+                    onClick={handlePrintReceipt}
+                    className="flex-1 border-app-border hover:bg-white/10 bg-transparent text-white"
+                    disabled={loading}
+                  >
+                    Imprimir
+                  </Button>
+                  <Button
+                    variant="outline"
                     onClick={handleCloseOrder}
                     className="flex-1 border-app-border hover:bg-white/10 bg-transparent text-white"
                     disabled={loading}
@@ -1125,6 +1171,14 @@ export function OrderModal({
                 <>
                   <Button
                     variant="outline"
+                    onClick={handlePrintReceipt}
+                    className="flex-1 border-app-border hover:bg-white/10 bg-transparent text-white"
+                    disabled={loading}
+                  >
+                    Imprimir
+                  </Button>
+                  <Button
+                    variant="outline"
                     onClick={handleCloseOrder}
                     className="flex-1 border-app-border hover:bg-white/10 bg-transparent text-white"
                     disabled={loading}
@@ -1141,6 +1195,14 @@ export function OrderModal({
                 </>
               ) : (
                 <>
+                  <Button
+                    variant="outline"
+                    onClick={handlePrintReceipt}
+                    className="flex-1 border-app-border hover:bg-white/10 bg-transparent text-white"
+                    disabled={loading}
+                  >
+                    Imprimir
+                  </Button>
                   <Button
                     variant="outline"
                     onClick={handleCloseOrder}
@@ -1685,6 +1747,14 @@ export function OrderModal({
               <>
                 <Button
                   variant="outline"
+                  onClick={handlePrintReceipt}
+                  className="flex-1 border-app-border hover:bg-red-50 bg-transparent text-red-600 hover:text-red-700"
+                  disabled={loading}
+                >
+                  Imprimir
+                </Button>
+                <Button
+                  variant="outline"
                   onClick={handleCloseOrder}
                   className="flex-1 border-app-border hover:bg-red-50 bg-transparent text-red-600 hover:text-red-700"
                   disabled={loading}
@@ -1710,6 +1780,14 @@ export function OrderModal({
               <>
                 <Button
                   variant="outline"
+                  onClick={handlePrintReceipt}
+                  className="flex-1 border-app-border hover:bg-red-50 bg-transparent text-red-600 hover:text-red-700"
+                  disabled={loading}
+                >
+                  Imprimir
+                </Button>
+                <Button
+                  variant="outline"
                   onClick={handleCloseOrder}
                   className="flex-1 border-app-border hover:bg-red-50 bg-transparent text-red-600 hover:text-red-700"
                   disabled={loading}
@@ -1726,6 +1804,14 @@ export function OrderModal({
               </>
             ) : (
               <>
+                <Button
+                  variant="outline"
+                  onClick={handlePrintReceipt}
+                  className="flex-1 border-app-border hover:bg-red-50 bg-transparent text-red-600 hover:text-red-700"
+                  disabled={loading}
+                >
+                  Imprimir
+                </Button>
                 <Button
                   variant="outline"
                   onClick={handleCloseOrder}

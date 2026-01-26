@@ -8,6 +8,7 @@ interface CreatePublicOrderData {
   orderType: "MESA" | "BALCAO";
   table?: number;
   name?: string;
+  comanda?: string;
   phone?: string;
   items: Array<{
     product_id: string;
@@ -44,6 +45,7 @@ export async function createPublicOrderAction(
       orderType: data.orderType,
       table: data.table,
       name: data.name,
+        comanda: data.comanda,
       phone: data.phone,
       items: data.items, // Enviar items junto com a criação do pedido
       }
