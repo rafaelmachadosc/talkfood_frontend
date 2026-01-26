@@ -38,6 +38,12 @@ export function DashboardAnalytics({ token }: DashboardAnalyticsProps) {
   const [loading, setLoading] = useState(true);
   const [metrics, setMetrics] = useState<SalesMetrics | null>(null);
   const [dailySales, setDailySales] = useState<DailySales[]>([]);
+  const normalizeDailySales = (data: unknown): DailySales[] => {
+    if (Array.isArray(data)) return data;
+    const maybeData = (data as { data?: unknown })?.data;
+    if (Array.isArray(maybeData)) return maybeData;
+    return [];
+  };
 
   useEffect(() => {
     async function loadData() {
@@ -50,7 +56,7 @@ export function DashboardAnalytics({ token }: DashboardAnalyticsProps) {
         });
 
         // Buscar vendas diárias (últimos 7 dias)
-        const dailyData = await apiClient<DailySales[] | null>("/api/analytics/daily-sales", {
+        const dailyData = await apiClient<DailySales[] | { data?: DailySales[] } | null>("/api/analytics/daily-sales", {
           method: "GET",
           token: token,
           silent404: true,
@@ -78,7 +84,7 @@ export function DashboardAnalytics({ token }: DashboardAnalyticsProps) {
           setMetrics(metricsData);
         }
 
-        setDailySales(dailyData || []);
+        setDailySales(normalizeDailySales(dailyData));
         setLoading(false);
       } catch (error) {
         console.error("Erro ao carregar métricas:", error);
