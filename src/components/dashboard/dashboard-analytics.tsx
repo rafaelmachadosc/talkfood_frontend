@@ -37,6 +37,31 @@ export function DashboardAnalytics({ token }: DashboardAnalyticsProps) {
   const [loading, setLoading] = useState(true);
   const [metrics, setMetrics] = useState<SalesMetrics | null>(null);
   const [dailySales, setDailySales] = useState<DailySales[]>([]);
+  const normalizePaymentMethods = (input: unknown): SalesMetrics["paymentMethods"] => {
+    const base = {
+      DINHEIRO: 0,
+      PIX: 0,
+      CARTAO_CREDITO: 0,
+      CARTAO_DEBITO: 0,
+    };
+    if (!input || typeof input !== "object") return base;
+    const entries = Object.entries(input as Record<string, unknown>);
+    entries.forEach(([key, value]) => {
+      const normalizedKey = key.toUpperCase().replace(/\s+/g, "_");
+      const amount = typeof value === "number" ? value : Number(value);
+      if (Number.isNaN(amount)) return;
+      if (normalizedKey.includes("DINHEIRO") || normalizedKey === "CASH") {
+        base.DINHEIRO += amount;
+      } else if (normalizedKey.includes("PIX")) {
+        base.PIX += amount;
+      } else if (normalizedKey.includes("CREDITO") || normalizedKey.includes("CREDIT")) {
+        base.CARTAO_CREDITO += amount;
+      } else if (normalizedKey.includes("DEBITO") || normalizedKey.includes("DEBIT")) {
+        base.CARTAO_DEBITO += amount;
+      }
+    });
+    return base;
+  };
   const normalizeDailySales = (data: unknown): DailySales[] => {
     if (Array.isArray(data)) return data;
     const maybeData = (data as { data?: unknown })?.data;
@@ -80,7 +105,14 @@ export function DashboardAnalytics({ token }: DashboardAnalyticsProps) {
             },
           });
         } else {
-          setMetrics(metricsData);
+          const paymentMethods =
+            normalizePaymentMethods(
+              metricsData.paymentMethods ||
+                (metricsData as { payment_methods?: unknown }).payment_methods ||
+                (metricsData as { paymentMethodTotals?: unknown }).paymentMethodTotals ||
+                (metricsData as { payment_methods_totals?: unknown }).payment_methods_totals
+            );
+          setMetrics({ ...metricsData, paymentMethods });
         }
 
         setDailySales(normalizeDailySales(dailyData));
