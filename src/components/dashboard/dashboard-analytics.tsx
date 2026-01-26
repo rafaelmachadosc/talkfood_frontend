@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { apiClient } from "@/lib/api";
 import { formatPrice } from "@/lib/format";
@@ -32,12 +32,29 @@ interface DailySales {
   date: string;
   total: number;
   orders: number;
+  paymentMethods?: SalesMetrics["paymentMethods"];
 }
 
 export function DashboardAnalytics({ token }: DashboardAnalyticsProps) {
   const [loading, setLoading] = useState(true);
   const [metrics, setMetrics] = useState<SalesMetrics | null>(null);
   const [dailySales, setDailySales] = useState<DailySales[]>([]);
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, "0");
+    const day = String(today.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  });
+  const rangeStart = useMemo(() => {
+    const end = new Date(selectedDate);
+    const start = new Date(end);
+    start.setDate(end.getDate() - 29);
+    const year = start.getFullYear();
+    const month = String(start.getMonth() + 1).padStart(2, "0");
+    const day = String(start.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }, [selectedDate]);
   const normalizePaymentMethods = (input: unknown): SalesMetrics["paymentMethods"] => {
     const base = {
       DINHEIRO: 0,
@@ -65,30 +82,60 @@ export function DashboardAnalytics({ token }: DashboardAnalyticsProps) {
   };
   const normalizeDailySales = (data: unknown): DailySales[] => {
     if (Array.isArray(data)) return data;
-    const maybeData = (data as { data?: unknown })?.data;
+    const maybeData = (data as { data?: unknown; items?: unknown })?.data ?? (data as { items?: unknown })?.items;
     if (Array.isArray(maybeData)) return maybeData;
     return [];
+  };
+  const normalizeDailyEntry = (data: unknown): DailySales | null => {
+    if (!data || typeof data !== "object") return null;
+    const raw = data as Record<string, unknown>;
+    const dateValue = (raw.date || raw.day_date || raw.dayDate || raw.Date || raw.day) as string | undefined;
+    if (!dateValue) return null;
+    const totalValue = raw.totalSales ?? raw.total ?? raw.total_cents ?? raw.totalCents ?? raw.TotalSales ?? 0;
+    const ordersValue = raw.totalOrders ?? raw.orders ?? raw.total_orders ?? raw.totalOrdersCount ?? raw.TotalOrders ?? 0;
+    const paymentMethods =
+      normalizePaymentMethods(
+        raw.paymentMethods ||
+          raw.payment_methods ||
+          raw.paymentMethodTotals ||
+          raw.payment_methods_totals
+      );
+    return {
+      date: String(dateValue).slice(0, 10),
+      total: typeof totalValue === "number" ? totalValue : Number(totalValue) || 0,
+      orders: typeof ordersValue === "number" ? ordersValue : Number(ordersValue) || 0,
+      paymentMethods,
+    };
   };
 
   useEffect(() => {
     async function loadData() {
       try {
-        // Buscar métricas de vendas (silent404 para não gerar erro no console se endpoint não existir)
-        const metricsData = await apiClient<SalesMetrics | null>("/api/analytics/metrics", {
-          method: "GET",
-          token: token,
-          silent404: true,
-        });
+        const dailyData = await apiClient<DailySales | { data?: DailySales } | null>(
+          `/api/analytics/daily?date=${selectedDate}`,
+          {
+            method: "GET",
+            token: token,
+            silent404: true,
+          }
+        );
+        const rangeData = await apiClient<DailySales[] | { data?: DailySales[]; items?: DailySales[] } | null>(
+          `/api/analytics/range?start=${rangeStart}&end=${selectedDate}`,
+          {
+            method: "GET",
+            token: token,
+            silent404: true,
+          }
+        );
 
-        // Buscar vendas diárias (últimos 7 dias)
-        const dailyData = await apiClient<DailySales[] | { data?: DailySales[] } | null>("/api/analytics/daily-sales", {
-          method: "GET",
-          token: token,
-          silent404: true,
-        });
+        const dailyEntry = normalizeDailyEntry(
+          (dailyData as { data?: unknown })?.data ?? dailyData
+        );
+        const rangeEntries = normalizeDailySales(rangeData)
+          .map((entry) => normalizeDailyEntry(entry) || entry)
+          .filter(Boolean) as DailySales[];
 
-        // Se os endpoints não existirem (404), usar valores padrão
-        if (metricsData === null) {
+        if (!dailyEntry) {
           setMetrics({
             totalToday: 0,
             totalWeek: 0,
@@ -106,21 +153,28 @@ export function DashboardAnalytics({ token }: DashboardAnalyticsProps) {
             },
           });
         } else {
-          const paymentMethods =
-            normalizePaymentMethods(
-              metricsData.paymentMethods ||
-                (metricsData as { payment_methods?: unknown }).payment_methods ||
-                (metricsData as { paymentMethodTotals?: unknown }).paymentMethodTotals ||
-                (metricsData as { payment_methods_totals?: unknown }).payment_methods_totals
-            );
-          setMetrics({ ...metricsData, paymentMethods });
+          setMetrics({
+            totalToday: dailyEntry.total,
+            totalWeek: 0,
+            totalMonth: 0,
+            ordersToday: dailyEntry.orders,
+            ordersWeek: 0,
+            ordersMonth: 0,
+            averageTicket: 0,
+            growthRate: 0,
+            paymentMethods: dailyEntry.paymentMethods || {
+              DINHEIRO: 0,
+              PIX: 0,
+              CARTAO_CREDITO: 0,
+              CARTAO_DEBITO: 0,
+            },
+          });
         }
 
-        setDailySales(normalizeDailySales(dailyData));
+        setDailySales(rangeEntries);
         setLoading(false);
       } catch (error) {
         console.error("Erro ao carregar métricas:", error);
-        // Fallback para valores padrão em caso de outro erro
         setMetrics({
           totalToday: 0,
           totalWeek: 0,
@@ -143,7 +197,7 @@ export function DashboardAnalytics({ token }: DashboardAnalyticsProps) {
     }
 
     loadData();
-  }, [token]);
+  }, [token, selectedDate, rangeStart]);
 
   if (loading) {
     return (
@@ -164,13 +218,25 @@ export function DashboardAnalytics({ token }: DashboardAnalyticsProps) {
   const sortedDailySales = [...dailySales].sort(
     (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
   );
+  const uniqueDates = Array.from(new Set(sortedDailySales.map((entry) => entry.date))).sort();
   const sumLastDays = (days: number) => {
-    const slice = sortedDailySales.slice(-days);
-    return slice.reduce((sum, item) => sum + item.total, 0);
+    const targetDates = uniqueDates.slice(-days);
+    const totalsByDate = new Map<string, number>();
+    sortedDailySales.forEach((entry) => {
+      totalsByDate.set(entry.date, entry.total);
+    });
+    return targetDates.reduce((sum, date) => sum + (totalsByDate.get(date) || 0), 0);
   };
-  const total7Days = sortedDailySales.length >= 7 ? sumLastDays(7) : metrics.totalWeek;
-  const total15Days = sortedDailySales.length >= 15 ? sumLastDays(15) : 0;
-  const total30Days = sortedDailySales.length >= 30 ? sumLastDays(30) : metrics.totalMonth;
+  const availableDays = uniqueDates.length;
+  const total7Days = availableDays > 0 ? sumLastDays(Math.min(7, availableDays)) : 0;
+  const total15Days = availableDays >= 15 ? sumLastDays(15) : 0;
+  const total30Days = availableDays >= 30 ? sumLastDays(30) : 0;
+  const paymentMethods = metrics.paymentMethods || {
+    DINHEIRO: 0,
+    PIX: 0,
+    CARTAO_CREDITO: 0,
+    CARTAO_DEBITO: 0,
+  };
 
   return (
     <div className="space-y-5">
@@ -178,6 +244,20 @@ export function DashboardAnalytics({ token }: DashboardAnalyticsProps) {
         <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[#9FC131]/40 to-transparent" />
         <span className="text-xs tracking-[0.3em] uppercase text-[#9FC131]">Dashboard</span>
         <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[#9FC131]/40 to-transparent" />
+      </div>
+
+      <div className="flex items-center justify-between text-xs text-black">
+        <span className="uppercase tracking-wide text-gray-600">Calendário</span>
+        <label htmlFor="dashboard-date" className="sr-only">
+          Data do dashboard
+        </label>
+        <input
+          type="date"
+          id="dashboard-date"
+          value={selectedDate}
+          onChange={(event) => setSelectedDate(event.target.value)}
+          className="border border-app-border rounded-md px-2 py-1 text-xs text-black bg-white"
+        />
       </div>
 
       <Card className="bg-white border border-app-border rounded-lg shadow-none overflow-hidden">
@@ -228,37 +308,37 @@ export function DashboardAnalytics({ token }: DashboardAnalyticsProps) {
               <QrCode className="w-3.5 h-3.5 text-[#9FC131]" />
               <span>Pix</span>
             </div>
-            <span className="text-[#FFA500]">{formatPrice(metrics.paymentMethods?.PIX || 0)}</span>
+            <span className="text-[#FFA500]">{formatPrice(paymentMethods.PIX || 0)}</span>
           </div>
           <div className="flex items-center justify-between text-sm text-black">
             <div className="flex items-center gap-2">
               <Wallet className="w-3.5 h-3.5 text-[#9FC131]" />
               <span>Dinheiro</span>
             </div>
-            <span className="text-[#FFA500]">{formatPrice(metrics.paymentMethods?.DINHEIRO || 0)}</span>
+            <span className="text-[#FFA500]">{formatPrice(paymentMethods.DINHEIRO || 0)}</span>
           </div>
           <div className="flex items-center justify-between text-sm text-black">
             <div className="flex items-center gap-2">
               <CreditCard className="w-3.5 h-3.5 text-[#9FC131]" />
               <span>Crédito</span>
             </div>
-            <span className="text-[#FFA500]">{formatPrice(metrics.paymentMethods?.CARTAO_CREDITO || 0)}</span>
+            <span className="text-[#FFA500]">{formatPrice(paymentMethods.CARTAO_CREDITO || 0)}</span>
           </div>
           <div className="flex items-center justify-between text-sm text-black">
             <div className="flex items-center gap-2">
               <CreditCard className="w-3.5 h-3.5 text-[#9FC131]" />
               <span>Débito</span>
             </div>
-            <span className="text-[#FFA500]">{formatPrice(metrics.paymentMethods?.CARTAO_DEBITO || 0)}</span>
+            <span className="text-[#FFA500]">{formatPrice(paymentMethods.CARTAO_DEBITO || 0)}</span>
           </div>
           <div className="flex items-center justify-between text-sm text-black pt-2 border-t border-app-border">
             <span>Total:</span>
             <span className="text-[#FFA500]">
               {formatPrice(
-                (metrics.paymentMethods?.PIX || 0) +
-                  (metrics.paymentMethods?.DINHEIRO || 0) +
-                  (metrics.paymentMethods?.CARTAO_CREDITO || 0) +
-                  (metrics.paymentMethods?.CARTAO_DEBITO || 0)
+                (paymentMethods.PIX || 0) +
+                  (paymentMethods.DINHEIRO || 0) +
+                  (paymentMethods.CARTAO_CREDITO || 0) +
+                  (paymentMethods.CARTAO_DEBITO || 0)
               )}
             </span>
           </div>
