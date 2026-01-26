@@ -39,22 +39,15 @@ export function DashboardAnalytics({ token }: DashboardAnalyticsProps) {
   const [loading, setLoading] = useState(true);
   const [metrics, setMetrics] = useState<SalesMetrics | null>(null);
   const [dailySales, setDailySales] = useState<DailySales[]>([]);
-  const [startDate, setStartDate] = useState(() => {
-    const today = new Date();
-    const start = new Date(today);
-    start.setDate(today.getDate() - 29);
-    const year = start.getFullYear();
-    const month = String(start.getMonth() + 1).padStart(2, "0");
-    const day = String(start.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  });
-  const [endDate, setEndDate] = useState(() => {
+  const getTodayString = () => {
     const today = new Date();
     const year = today.getFullYear();
     const month = String(today.getMonth() + 1).padStart(2, "0");
     const day = String(today.getDate()).padStart(2, "0");
     return `${year}-${month}-${day}`;
-  });
+  };
+  const [startDate, setStartDate] = useState(getTodayString);
+  const [endDate, setEndDate] = useState(getTodayString);
   const normalizePaymentMethods = (input: unknown): SalesMetrics["paymentMethods"] => {
     const base = {
       DINHEIRO: 0,
@@ -260,7 +253,6 @@ export function DashboardAnalytics({ token }: DashboardAnalyticsProps) {
       </div>
 
       <div className="space-y-2 text-xs text-black">
-        <span className="uppercase tracking-wide text-gray-600">Calendário</span>
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2">
             <label htmlFor="dashboard-start-date" className="text-[11px] text-gray-500 w-10">

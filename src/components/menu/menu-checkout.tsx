@@ -119,11 +119,11 @@ export function MenuCheckout({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="bg-app-card border-app-border text-black max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-normal text-black tracking-tight">
-            Finalizar Pedido
+          <DialogTitle className="text-2xl sm:text-3xl font-normal text-black tracking-tight">
+            Solicitar Pedido
           </DialogTitle>
-          <DialogDescription className="text-gray-600">
-            Preencha os dados para finalizar seu pedido
+          <DialogDescription className="text-gray-600 text-base">
+            Preencha os dados para solicitar seu pedido
           </DialogDescription>
         </DialogHeader>
 
@@ -138,7 +138,7 @@ export function MenuCheckout({
               type="number"
               required
               placeholder="Ex: 5"
-              className="border-app-border bg-white text-black"
+              className="border-app-border bg-white text-black text-base"
               value={table}
               onChange={(e) => setTable(e.target.value)}
               min="1"
@@ -154,7 +154,7 @@ export function MenuCheckout({
               name="name"
               required
               placeholder="Seu nome"
-              className="border-app-border bg-white text-black"
+              className="border-app-border bg-white text-black text-base"
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
@@ -169,7 +169,7 @@ export function MenuCheckout({
               name="phone"
               type="tel"
               placeholder="(00) 00000-0000"
-              className="border-app-border bg-white text-black"
+              className="border-app-border bg-white text-black text-base"
               value={phone}
               onChange={handlePhoneChange}
               maxLength={15}
@@ -207,7 +207,7 @@ export function MenuCheckout({
               type="button"
               variant="outline"
               onClick={onClose}
-              className="flex-1 border-app-border hover:bg-transparent"
+              className="flex-1 border-app-border hover:bg-transparent text-base py-3"
               disabled={isLoading}
             >
               Cancelar
@@ -215,7 +215,7 @@ export function MenuCheckout({
             <Button
               type="submit"
               disabled={isLoading || !table || !name || !cart || cart.length === 0}
-              className="flex-1 bg-brand-primary hover:bg-brand-primary/90 text-black tech-shadow tech-hover font-normal text-black"
+              className="flex-1 bg-brand-primary hover:bg-brand-primary/90 text-black tech-shadow tech-hover font-normal text-base py-3"
             >
               {isLoading ? (
                 <>
@@ -223,7 +223,7 @@ export function MenuCheckout({
                   Processando...
                 </>
               ) : (
-                "Confirmar Pedido"
+                "Solicitar Pedido"
               )}
             </Button>
           </div>

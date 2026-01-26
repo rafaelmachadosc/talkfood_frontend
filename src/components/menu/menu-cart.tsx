@@ -40,11 +40,11 @@ export function MenuCart({
     <Sheet open={isOpen} onOpenChange={onClose}>
       <SheetContent className="w-full sm:max-w-md bg-app-card border-app-border text-black overflow-y-auto">
         <SheetHeader>
-          <SheetTitle className="text-2xl font-normal text-black tracking-tight">
+          <SheetTitle className="text-2xl sm:text-3xl font-normal text-black tracking-tight">
             Comanda
           </SheetTitle>
-          <SheetDescription className="text-gray-600">
-            Revise seus itens antes de finalizar o pedido
+          <SheetDescription className="text-gray-600 text-base">
+            Revise seus itens antes de solicitar o pedido
           </SheetDescription>
         </SheetHeader>
 
@@ -64,10 +64,10 @@ export function MenuCart({
                   >
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex-1">
-                        <h3 className="font-normal text-black">
+                        <h3 className="font-normal text-black text-lg">
                           {item.product.name}
                         </h3>
-                        <p className="text-sm text-gray-600 mt-1">
+                        <p className="text-base text-gray-600 mt-1">
                           {formatPrice(item.product.price)} cada
                         </p>
                       </div>
@@ -92,11 +92,11 @@ export function MenuCart({
                               item.quantity - 1
                             )
                           }
-                          className="h-8 w-8 border-app-border"
+                          className="h-9 w-9 border-app-border"
                         >
                           <Minus className="w-4 h-4 icon-3d" />
                         </Button>
-                        <span className="w-8 text-center font-normal">
+                        <span className="w-8 text-center font-normal text-base">
                           {item.quantity}
                         </span>
                         <Button
@@ -108,12 +108,12 @@ export function MenuCart({
                               item.quantity + 1
                             )
                           }
-                          className="h-8 w-8 border-app-border"
+                          className="h-9 w-9 border-app-border"
                         >
                           <Plus className="w-4 h-4 icon-3d" />
                         </Button>
                       </div>
-                      <span className="font-normal text-brand-primary">
+                      <span className="font-normal text-brand-primary text-lg">
                         {formatPrice(item.product.price * item.quantity)}
                       </span>
                     </div>
@@ -130,9 +130,9 @@ export function MenuCart({
                 </div>
                 <Button
                   onClick={onCheckout}
-                  className="w-full bg-brand-primary hover:bg-brand-primary/90 text-black tech-shadow tech-hover font-normal text-black font-normal"
+                  className="w-full bg-brand-primary hover:bg-brand-primary/90 text-black tech-shadow tech-hover font-normal text-base py-3"
                 >
-                  Finalizar Pedido
+                  Solicitar Pedido
                 </Button>
               </div>
             </>
