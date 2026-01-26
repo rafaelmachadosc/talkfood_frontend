@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiClient } from "@/lib/api";
 import { formatPrice } from "@/lib/format";
-import { DollarSign, CalendarDays, CalendarRange, CalendarClock, CreditCard, Wallet, QrCode } from "lucide-react";
 
 interface DashboardAnalyticsProps {
   token: string;
@@ -141,104 +140,71 @@ export function DashboardAnalytics({ token }: DashboardAnalyticsProps) {
   const total30Days = sortedDailySales.length >= 30 ? sumLastDays(30) : metrics.totalMonth;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
+    <div className="space-y-5">
+      <div className="flex items-center gap-3">
         <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[#9FC131]/40 to-transparent" />
-        <span className="text-sm tracking-[0.4em] uppercase text-[#9FC131]">Dashboard</span>
+        <span className="text-xs tracking-[0.3em] uppercase text-[#9FC131]">Dashboard</span>
         <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[#9FC131]/40 to-transparent" />
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <Card className="bg-[#0F1216] border border-[#1E2530] rounded-lg shadow-[0_0_18px_rgba(159,193,49,0.12)]">
-          <CardHeader className="flex flex-row items-center justify-between p-2 pb-1">
-            <CardTitle className="text-[11px] font-normal text-[#9FC131]">Vendas Hoje</CardTitle>
-            <DollarSign className="w-4 h-4 text-[#9FC131]" />
-          </CardHeader>
-          <CardContent className="p-2 pt-0">
-            <div className="text-sm font-normal text-white">{formatPrice(metrics.totalToday)}</div>
-          </CardContent>
-        </Card>
+      <Card className="bg-white border border-app-border rounded-lg shadow-none">
+        <CardContent className="p-4 space-y-2">
+          <div className="flex items-center justify-between text-sm text-black">
+            <span>Vendas de hoje</span>
+            <span className="text-[#FFA500]">{formatPrice(metrics.totalToday)}</span>
+          </div>
+          <div className="flex items-center justify-between text-sm text-black">
+            <span>Vendas dos últimos 7 dias</span>
+            <span className="text-[#FFA500]">{formatPrice(total7Days)}</span>
+          </div>
+          <div className="flex items-center justify-between text-sm text-black">
+            <span>Vendas dos últimos 15 dias</span>
+            <span className="text-[#FFA500]">{formatPrice(total15Days)}</span>
+          </div>
+          <div className="flex items-center justify-between text-sm text-black">
+            <span>Vendas dos últimos 30 dias</span>
+            <span className="text-[#FFA500]">{formatPrice(total30Days)}</span>
+          </div>
+          <div className="flex items-center justify-between text-sm text-black pt-2 border-t border-app-border">
+            <span>Total:</span>
+            <span className="text-[#FFA500]">
+              {formatPrice(metrics.totalToday + total7Days + total15Days + total30Days)}
+            </span>
+          </div>
+        </CardContent>
+      </Card>
 
-        <Card className="bg-[#0F1216] border border-[#1E2530] rounded-lg shadow-[0_0_18px_rgba(159,193,49,0.12)]">
-          <CardHeader className="flex flex-row items-center justify-between p-2 pb-1">
-            <CardTitle className="text-[11px] font-normal text-[#9FC131]">Vendas 7 Dias</CardTitle>
-            <CalendarDays className="w-4 h-4 text-[#9FC131]" />
-          </CardHeader>
-          <CardContent className="p-2 pt-0">
-            <div className="text-sm font-normal text-white">{formatPrice(total7Days)}</div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-[#0F1216] border border-[#1E2530] rounded-lg shadow-[0_0_18px_rgba(159,193,49,0.12)]">
-          <CardHeader className="flex flex-row items-center justify-between p-2 pb-1">
-            <CardTitle className="text-[11px] font-normal text-[#9FC131]">Vendas 15 Dias</CardTitle>
-            <CalendarRange className="w-4 h-4 text-[#9FC131]" />
-          </CardHeader>
-          <CardContent className="p-2 pt-0">
-            <div className="text-sm font-normal text-white">{formatPrice(total15Days)}</div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-[#0F1216] border border-[#1E2530] rounded-lg shadow-[0_0_18px_rgba(159,193,49,0.12)]">
-          <CardHeader className="flex flex-row items-center justify-between p-2 pb-1">
-            <CardTitle className="text-[11px] font-normal text-[#9FC131]">Vendas 30 Dias</CardTitle>
-            <CalendarClock className="w-4 h-4 text-[#9FC131]" />
-          </CardHeader>
-          <CardContent className="p-2 pt-0">
-            <div className="text-sm font-normal text-white">{formatPrice(total30Days)}</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
-        <Card className="bg-[#0F1216] border border-[#1E2530] rounded-lg shadow-[0_0_18px_rgba(159,193,49,0.12)]">
-          <CardHeader className="flex flex-row items-center justify-between p-2 pb-1">
-            <CardTitle className="text-[11px] font-normal text-[#9FC131]">Vendas em Dinheiro</CardTitle>
-            <Wallet className="w-4 h-4 text-[#9FC131]" />
-          </CardHeader>
-          <CardContent className="p-2 pt-0">
-            <div className="text-sm font-normal text-white">
-              {formatPrice(metrics.paymentMethods?.DINHEIRO || 0)}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-[#0F1216] border border-[#1E2530] rounded-lg shadow-[0_0_18px_rgba(159,193,49,0.12)]">
-          <CardHeader className="flex flex-row items-center justify-between p-2 pb-1">
-            <CardTitle className="text-[11px] font-normal text-[#9FC131]">Vendas em Pix</CardTitle>
-            <QrCode className="w-4 h-4 text-[#9FC131]" />
-          </CardHeader>
-          <CardContent className="p-2 pt-0">
-            <div className="text-sm font-normal text-white">
-              {formatPrice(metrics.paymentMethods?.PIX || 0)}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-[#0F1216] border border-[#1E2530] rounded-lg shadow-[0_0_18px_rgba(159,193,49,0.12)]">
-          <CardHeader className="flex flex-row items-center justify-between p-2 pb-1">
-            <CardTitle className="text-[11px] font-normal text-[#9FC131]">Vendas em Cartão C.</CardTitle>
-            <CreditCard className="w-4 h-4 text-[#9FC131]" />
-          </CardHeader>
-          <CardContent className="p-2 pt-0">
-            <div className="text-sm font-normal text-white">
-              {formatPrice(metrics.paymentMethods?.CARTAO_CREDITO || 0)}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-[#0F1216] border border-[#1E2530] rounded-lg shadow-[0_0_18px_rgba(159,193,49,0.12)]">
-          <CardHeader className="flex flex-row items-center justify-between p-2 pb-1">
-            <CardTitle className="text-[11px] font-normal text-[#9FC131]">Vendas em Cartão D.</CardTitle>
-            <CreditCard className="w-4 h-4 text-[#9FC131]" />
-          </CardHeader>
-          <CardContent className="p-2 pt-0">
-            <div className="text-sm font-normal text-white">
-              {formatPrice(metrics.paymentMethods?.CARTAO_DEBITO || 0)}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <Card className="bg-white border border-app-border rounded-lg shadow-none">
+        <CardContent className="p-4 space-y-2">
+          <div className="flex items-center justify-between text-sm text-black">
+            <span>Vendas em pix</span>
+            <span className="text-[#FFA500]">{formatPrice(metrics.paymentMethods?.PIX || 0)}</span>
+          </div>
+          <div className="flex items-center justify-between text-sm text-black">
+            <span>Vendas em dinheiro</span>
+            <span className="text-[#FFA500]">{formatPrice(metrics.paymentMethods?.DINHEIRO || 0)}</span>
+          </div>
+          <div className="flex items-center justify-between text-sm text-black">
+            <span>Vendas cartão de crédito</span>
+            <span className="text-[#FFA500]">{formatPrice(metrics.paymentMethods?.CARTAO_CREDITO || 0)}</span>
+          </div>
+          <div className="flex items-center justify-between text-sm text-black">
+            <span>Vendas em cartão de débito</span>
+            <span className="text-[#FFA500]">{formatPrice(metrics.paymentMethods?.CARTAO_DEBITO || 0)}</span>
+          </div>
+          <div className="flex items-center justify-between text-sm text-black pt-2 border-t border-app-border">
+            <span>Total:</span>
+            <span className="text-[#FFA500]">
+              {formatPrice(
+                (metrics.paymentMethods?.PIX || 0) +
+                  (metrics.paymentMethods?.DINHEIRO || 0) +
+                  (metrics.paymentMethods?.CARTAO_CREDITO || 0) +
+                  (metrics.paymentMethods?.CARTAO_DEBITO || 0)
+              )}
+            </span>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
