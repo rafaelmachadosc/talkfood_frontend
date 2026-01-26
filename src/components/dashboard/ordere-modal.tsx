@@ -69,6 +69,24 @@ export function OrderModal({
   const productSearchRef = useRef<HTMLDivElement | null>(null);
   const adicionaisSearchRef = useRef<HTMLDivElement | null>(null);
   const receiveSectionRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!showAddItem) return;
+    const handleOutsideClick = (event: MouseEvent) => {
+      const target = event.target as Node | null;
+      if (productSearchRef.current && target && productSearchRef.current.contains(target)) {
+        return;
+      }
+      if (adicionaisSearchRef.current && target && adicionaisSearchRef.current.contains(target)) {
+        return;
+      }
+      if (productSearch) setProductSearch("");
+      if (adicionaisSearch) setAdicionaisSearch("");
+    };
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+    };
+  }, [showAddItem, productSearch, adicionaisSearch]);
 
   // Função para formatar valor monetário como no campo de preço do produto (R$ 1.500,00)
   function formatToBrl(value: string): string {
@@ -963,7 +981,7 @@ export function OrderModal({
                 </div>
               )}
 
-              {showReceive && (
+              {showReceive && !isKitchen && (
                 <div ref={receiveSectionRef} className="mt-4 border-t border-app-border pt-4 space-y-4 text-white">
                   <div className="text-lg font-normal">Receber Pedido</div>
                   <div className="bg-[#2B2A2A] rounded-lg p-4 border border-app-border">
@@ -1730,8 +1748,9 @@ export function OrderModal({
       </DialogContent>
 
       {/* Dialog: Adicionar Item */}
-      <Dialog open={showAddItem} onOpenChange={setShowAddItem}>
-        <DialogContent className="bg-app-card border-app-border text-black max-w-2xl max-h-[90vh] overflow-y-auto">
+      {!isKitchen && (
+        <Dialog open={showAddItem} onOpenChange={setShowAddItem}>
+          <DialogContent className="bg-app-card border-app-border text-black max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-xl font-normal tracking-tight">
               Adicionar Item ao Pedido
@@ -2031,8 +2050,9 @@ export function OrderModal({
               </Button>
             </div>
           </div>
-        </DialogContent>
-      </Dialog>
+          </DialogContent>
+        </Dialog>
+      )}
 
         {/* Receber Pedido (painel) */}
         {showReceive ? (
