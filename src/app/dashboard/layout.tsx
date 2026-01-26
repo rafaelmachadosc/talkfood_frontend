@@ -1,4 +1,4 @@
-import { requiredAdmin } from "@/lib/auth";
+import { getToken, requiredAdmin } from "@/lib/auth";
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { MobileSidebar } from "@/components/dashboard/mobile-sidebar";
 
@@ -8,11 +8,12 @@ export default async function DashboardLayout({
   children: React.ReactNode;
 }) {
   const user = await requiredAdmin();
+  const token = await getToken();
 
   return (
     <div className="flex h-screen overflow-hidden text-black">
       {/* Sidebar DESKTOP */}
-      <Sidebar userName={user.name} />
+      <Sidebar userName={user.name} token={token} />
 
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* HEADER MOBILE */}

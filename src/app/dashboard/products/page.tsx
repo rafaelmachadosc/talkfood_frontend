@@ -4,7 +4,6 @@ import { Product } from "@/lib/types";
 import { Package } from "lucide-react";
 import { ProductForm } from "@/components/dashboard/product-form";
 import { ProductActions } from "@/components/dashboard/product-actions";
-import { DashboardAnalytics } from "@/components/dashboard/dashboard-analytics";
 import {
   Table,
   TableBody,
@@ -114,9 +113,6 @@ export default async function Products() {
         </div>
       )}
 
-      <div className="pt-6">
-        <DashboardAnalytics token={token!} />
-      </div>
     </div>
   );
 }

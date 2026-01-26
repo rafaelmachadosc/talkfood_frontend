@@ -7,9 +7,11 @@ import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { logoutAction } from "@/actions/auth";
 import { Logo } from "@/components/logo";
+import { DashboardAnalytics } from "@/components/dashboard/dashboard-analytics";
 
 interface SidebarProps {
   userName: string;
+  token?: string;
 }
 
 const menuItems = [
@@ -40,7 +42,7 @@ const menuItems = [
   },
 ];
 
-export function Sidebar({ userName }: SidebarProps) {
+export function Sidebar({ userName, token }: SidebarProps) {
   const pathname = usePathname();
 
   return (
@@ -52,7 +54,7 @@ export function Sidebar({ userName }: SidebarProps) {
       </div>
 
       {/* MENU */}
-      <nav className="flex-1 p-4 space-y-4">
+      <nav className="flex-1 p-4 space-y-4 overflow-y-auto">
         {menuItems.map((menu) => {
           const Icon = menu.icon;
           const isActive = pathname === menu.href;
@@ -71,6 +73,12 @@ export function Sidebar({ userName }: SidebarProps) {
             </Link>
           );
         })}
+
+        {token && (
+          <div className="pt-2">
+            <DashboardAnalytics token={token} />
+          </div>
+        )}
       </nav>
 
       <div className="border-t border-app-border p-4">
