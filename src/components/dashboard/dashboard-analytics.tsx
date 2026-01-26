@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { apiClient } from "@/lib/api";
 import { formatPrice } from "@/lib/format";
@@ -39,22 +39,22 @@ export function DashboardAnalytics({ token }: DashboardAnalyticsProps) {
   const [loading, setLoading] = useState(true);
   const [metrics, setMetrics] = useState<SalesMetrics | null>(null);
   const [dailySales, setDailySales] = useState<DailySales[]>([]);
-  const [selectedDate, setSelectedDate] = useState(() => {
+  const [startDate, setStartDate] = useState(() => {
+    const today = new Date();
+    const start = new Date(today);
+    start.setDate(today.getDate() - 29);
+    const year = start.getFullYear();
+    const month = String(start.getMonth() + 1).padStart(2, "0");
+    const day = String(start.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  });
+  const [endDate, setEndDate] = useState(() => {
     const today = new Date();
     const year = today.getFullYear();
     const month = String(today.getMonth() + 1).padStart(2, "0");
     const day = String(today.getDate()).padStart(2, "0");
     return `${year}-${month}-${day}`;
   });
-  const rangeStart = useMemo(() => {
-    const end = new Date(selectedDate);
-    const start = new Date(end);
-    start.setDate(end.getDate() - 29);
-    const year = start.getFullYear();
-    const month = String(start.getMonth() + 1).padStart(2, "0");
-    const day = String(start.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  }, [selectedDate]);
   const normalizePaymentMethods = (input: unknown): SalesMetrics["paymentMethods"] => {
     const base = {
       DINHEIRO: 0,
@@ -112,7 +112,7 @@ export function DashboardAnalytics({ token }: DashboardAnalyticsProps) {
     async function loadData() {
       try {
         const dailyData = await apiClient<DailySales | { data?: DailySales } | null>(
-          `/api/analytics/daily?date=${selectedDate}`,
+          `/api/analytics/daily?date=${endDate}`,
           {
             method: "GET",
             token: token,
@@ -120,7 +120,7 @@ export function DashboardAnalytics({ token }: DashboardAnalyticsProps) {
           }
         );
         const rangeData = await apiClient<DailySales[] | { data?: DailySales[]; items?: DailySales[] } | null>(
-          `/api/analytics/range?start=${rangeStart}&end=${selectedDate}`,
+          `/api/analytics/range?start=${startDate}&end=${endDate}`,
           {
             method: "GET",
             token: token,
@@ -197,7 +197,7 @@ export function DashboardAnalytics({ token }: DashboardAnalyticsProps) {
     }
 
     loadData();
-  }, [token, selectedDate, rangeStart]);
+  }, [token, startDate, endDate]);
 
   if (loading) {
     return (
@@ -237,6 +237,19 @@ export function DashboardAnalytics({ token }: DashboardAnalyticsProps) {
     CARTAO_CREDITO: 0,
     CARTAO_DEBITO: 0,
   };
+  const periodTotal = sortedDailySales.reduce((sum, entry) => sum + entry.total, 0);
+  const periodPaymentMethods = sortedDailySales.reduce(
+    (acc, entry) => {
+      const methods = entry.paymentMethods;
+      if (!methods) return acc;
+      acc.DINHEIRO += methods.DINHEIRO || 0;
+      acc.PIX += methods.PIX || 0;
+      acc.CARTAO_CREDITO += methods.CARTAO_CREDITO || 0;
+      acc.CARTAO_DEBITO += methods.CARTAO_DEBITO || 0;
+      return acc;
+    },
+    { DINHEIRO: 0, PIX: 0, CARTAO_CREDITO: 0, CARTAO_DEBITO: 0 }
+  );
 
   return (
     <div className="space-y-5">
@@ -248,16 +261,28 @@ export function DashboardAnalytics({ token }: DashboardAnalyticsProps) {
 
       <div className="flex items-center justify-between text-xs text-black">
         <span className="uppercase tracking-wide text-gray-600">Calendário</span>
-        <label htmlFor="dashboard-date" className="sr-only">
-          Data do dashboard
-        </label>
-        <input
-          type="date"
-          id="dashboard-date"
-          value={selectedDate}
-          onChange={(event) => setSelectedDate(event.target.value)}
-          className="border border-app-border rounded-md px-2 py-1 text-xs text-black bg-white"
-        />
+        <div className="flex items-center gap-2">
+          <label htmlFor="dashboard-start-date" className="text-[11px] text-gray-500">
+            De
+          </label>
+          <input
+            type="date"
+            id="dashboard-start-date"
+            value={startDate}
+            onChange={(event) => setStartDate(event.target.value)}
+            className="border border-app-border rounded-md px-2 py-1 text-xs text-black bg-white"
+          />
+          <label htmlFor="dashboard-end-date" className="text-[11px] text-gray-500">
+            Até
+          </label>
+          <input
+            type="date"
+            id="dashboard-end-date"
+            value={endDate}
+            onChange={(event) => setEndDate(event.target.value)}
+            className="border border-app-border rounded-md px-2 py-1 text-xs text-black bg-white"
+          />
+        </div>
       </div>
 
       <Card className="bg-white border border-app-border rounded-lg shadow-none overflow-hidden">
@@ -308,37 +333,37 @@ export function DashboardAnalytics({ token }: DashboardAnalyticsProps) {
               <QrCode className="w-3.5 h-3.5 text-[#9FC131]" />
               <span>Pix</span>
             </div>
-            <span className="text-[#FFA500]">{formatPrice(paymentMethods.PIX || 0)}</span>
+            <span className="text-[#FFA500]">{formatPrice(periodPaymentMethods.PIX || 0)}</span>
           </div>
           <div className="flex items-center justify-between text-sm text-black">
             <div className="flex items-center gap-2">
               <Wallet className="w-3.5 h-3.5 text-[#9FC131]" />
               <span>Dinheiro</span>
             </div>
-            <span className="text-[#FFA500]">{formatPrice(paymentMethods.DINHEIRO || 0)}</span>
+            <span className="text-[#FFA500]">{formatPrice(periodPaymentMethods.DINHEIRO || 0)}</span>
           </div>
           <div className="flex items-center justify-between text-sm text-black">
             <div className="flex items-center gap-2">
               <CreditCard className="w-3.5 h-3.5 text-[#9FC131]" />
               <span>Crédito</span>
             </div>
-            <span className="text-[#FFA500]">{formatPrice(paymentMethods.CARTAO_CREDITO || 0)}</span>
+            <span className="text-[#FFA500]">{formatPrice(periodPaymentMethods.CARTAO_CREDITO || 0)}</span>
           </div>
           <div className="flex items-center justify-between text-sm text-black">
             <div className="flex items-center gap-2">
               <CreditCard className="w-3.5 h-3.5 text-[#9FC131]" />
               <span>Débito</span>
             </div>
-            <span className="text-[#FFA500]">{formatPrice(paymentMethods.CARTAO_DEBITO || 0)}</span>
+            <span className="text-[#FFA500]">{formatPrice(periodPaymentMethods.CARTAO_DEBITO || 0)}</span>
           </div>
           <div className="flex items-center justify-between text-sm text-black pt-2 border-t border-app-border">
             <span>Total:</span>
             <span className="text-[#FFA500]">
               {formatPrice(
-                (paymentMethods.PIX || 0) +
-                  (paymentMethods.DINHEIRO || 0) +
-                  (paymentMethods.CARTAO_CREDITO || 0) +
-                  (paymentMethods.CARTAO_DEBITO || 0)
+                (periodPaymentMethods.PIX || 0) +
+                  (periodPaymentMethods.DINHEIRO || 0) +
+                  (periodPaymentMethods.CARTAO_CREDITO || 0) +
+                  (periodPaymentMethods.CARTAO_DEBITO || 0)
               )}
             </span>
           </div>
