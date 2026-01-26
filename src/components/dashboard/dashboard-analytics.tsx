@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiClient } from "@/lib/api";
 import { formatPrice } from "@/lib/format";
-import { TrendingUp, TrendingDown, DollarSign, ShoppingCart, Users, Package, CreditCard, Wallet } from "lucide-react";
+import { DollarSign, CalendarDays, CalendarRange, CalendarClock, CreditCard, Wallet, QrCode } from "lucide-react";
 
 interface DashboardAnalyticsProps {
   token: string;
@@ -123,164 +123,116 @@ export function DashboardAnalytics({ token }: DashboardAnalyticsProps) {
     );
   }
 
-  // Calcular altura máxima do gráfico
-  const maxSales = Math.max(...dailySales.map((d) => d.total), 1);
+  const sortedDailySales = [...dailySales].sort(
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+  );
+  const sumLastDays = (days: number) => {
+    const slice = sortedDailySales.slice(-days);
+    return slice.reduce((sum, item) => sum + item.total, 0);
+  };
+  const total7Days = sortedDailySales.length >= 7 ? sumLastDays(7) : metrics.totalWeek;
+  const total15Days = sortedDailySales.length >= 15 ? sumLastDays(15) : 0;
+  const total30Days = sortedDailySales.length >= 30 ? sumLastDays(30) : metrics.totalMonth;
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-normal text-black">Dashboard</h1>
-        <p className="text-sm sm:text-base mt-1">Métricas e gráficos de vendas</p>
+    <div className="space-y-6">
+      <div className="flex items-center gap-4">
+        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[#9FC131]/40 to-transparent" />
+        <span className="text-sm tracking-[0.4em] uppercase text-[#9FC131]">Dashboard</span>
+        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[#9FC131]/40 to-transparent" />
       </div>
 
-      {/* Cards de Métricas Gerais */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="bg-app-card border-app-border tech-shadow">
+        <Card className="bg-[#0F1216] border border-[#1E2530] shadow-[0_0_20px_rgba(159,193,49,0.15)]">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-normal text-gray-600">Vendas Hoje</CardTitle>
-            <DollarSign className="w-4 h-4 text-brand-primary icon-3d" />
+            <CardTitle className="text-xs font-normal tracking-wider text-[#9FC131]">Vendas Hoje</CardTitle>
+            <DollarSign className="w-4 h-4 text-[#9FC131]" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-normal text-black">{formatPrice(metrics.totalToday)}</div>
-            <p className="text-xs text-gray-600 mt-1">{metrics.ordersToday} pedidos</p>
+            <div className="text-2xl font-normal text-white">{formatPrice(metrics.totalToday)}</div>
           </CardContent>
         </Card>
 
-        <Card className="bg-app-card border-app-border tech-shadow">
+        <Card className="bg-[#0F1216] border border-[#1E2530] shadow-[0_0_20px_rgba(159,193,49,0.15)]">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-normal text-gray-600">Vendas Semana</CardTitle>
-            <TrendingUp className="w-4 h-4 text-brand-primary icon-3d" />
+            <CardTitle className="text-xs font-normal tracking-wider text-[#9FC131]">Vendas 7 Dias</CardTitle>
+            <CalendarDays className="w-4 h-4 text-[#9FC131]" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-normal text-black">{formatPrice(metrics.totalWeek)}</div>
-            <p className="text-xs text-gray-600 mt-1">{metrics.ordersWeek} pedidos</p>
+            <div className="text-2xl font-normal text-white">{formatPrice(total7Days)}</div>
           </CardContent>
         </Card>
 
-        <Card className="bg-app-card border-app-border tech-shadow">
+        <Card className="bg-[#0F1216] border border-[#1E2530] shadow-[0_0_20px_rgba(159,193,49,0.15)]">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-normal text-gray-600">Vendas Mês</CardTitle>
-            <ShoppingCart className="w-4 h-4 text-brand-primary icon-3d" />
+            <CardTitle className="text-xs font-normal tracking-wider text-[#9FC131]">Vendas 15 Dias</CardTitle>
+            <CalendarRange className="w-4 h-4 text-[#9FC131]" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-normal text-black">{formatPrice(metrics.totalMonth)}</div>
-            <p className="text-xs text-gray-600 mt-1">{metrics.ordersMonth} pedidos</p>
+            <div className="text-2xl font-normal text-white">{formatPrice(total15Days)}</div>
           </CardContent>
         </Card>
 
-        <Card className="bg-app-card border-app-border tech-shadow">
+        <Card className="bg-[#0F1216] border border-[#1E2530] shadow-[0_0_20px_rgba(159,193,49,0.15)]">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-normal text-gray-600">Ticket Médio</CardTitle>
-            <Package className="w-4 h-4 text-brand-primary icon-3d" />
+            <CardTitle className="text-xs font-normal tracking-wider text-[#9FC131]">Vendas 30 Dias</CardTitle>
+            <CalendarClock className="w-4 h-4 text-[#9FC131]" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-normal text-black">
-              {formatPrice(metrics.averageTicket)}
-            </div>
-            <div className="flex items-center gap-1 mt-1">
-              {metrics.growthRate >= 0 ? (
-                <TrendingUp className="w-3 h-3 text-green-500" />
-              ) : (
-                <TrendingDown className="w-3 h-3 text-red-500" />
-              )}
-              <p className="text-xs text-gray-600">
-                {metrics.growthRate >= 0 ? "+" : ""}
-                {metrics.growthRate.toFixed(1)}%
-              </p>
-            </div>
+            <div className="text-2xl font-normal text-white">{formatPrice(total30Days)}</div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Cards de Métodos de Pagamento */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="bg-app-card border-app-border tech-shadow">
+        <Card className="bg-[#0F1216] border border-[#1E2530] shadow-[0_0_20px_rgba(159,193,49,0.15)]">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-normal text-gray-600">Dinheiro</CardTitle>
-            <Wallet className="w-4 h-4 text-brand-primary icon-3d" />
+            <CardTitle className="text-xs font-normal tracking-wider text-[#9FC131]">Vendas em Dinheiro</CardTitle>
+            <Wallet className="w-4 h-4 text-[#9FC131]" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-normal text-black">
+            <div className="text-2xl font-normal text-white">
               {formatPrice(metrics.paymentMethods?.DINHEIRO || 0)}
             </div>
-            <p className="text-xs text-gray-600 mt-1">Total recebido</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-app-card border-app-border tech-shadow">
+        <Card className="bg-[#0F1216] border border-[#1E2530] shadow-[0_0_20px_rgba(159,193,49,0.15)]">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-normal text-gray-600">PIX</CardTitle>
-            <DollarSign className="w-4 h-4 text-brand-primary icon-3d" />
+            <CardTitle className="text-xs font-normal tracking-wider text-[#9FC131]">Vendas em Pix</CardTitle>
+            <QrCode className="w-4 h-4 text-[#9FC131]" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-normal text-black">
+            <div className="text-2xl font-normal text-white">
               {formatPrice(metrics.paymentMethods?.PIX || 0)}
             </div>
-            <p className="text-xs text-gray-600 mt-1">Total recebido</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-app-card border-app-border tech-shadow">
+        <Card className="bg-[#0F1216] border border-[#1E2530] shadow-[0_0_20px_rgba(159,193,49,0.15)]">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-normal text-gray-600">Cartão de Crédito</CardTitle>
-            <CreditCard className="w-4 h-4 text-brand-primary icon-3d" />
+            <CardTitle className="text-xs font-normal tracking-wider text-[#9FC131]">Vendas em Cartão C.</CardTitle>
+            <CreditCard className="w-4 h-4 text-[#9FC131]" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-normal text-black">
+            <div className="text-2xl font-normal text-white">
               {formatPrice(metrics.paymentMethods?.CARTAO_CREDITO || 0)}
             </div>
-            <p className="text-xs text-gray-600 mt-1">Total recebido</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-app-card border-app-border tech-shadow">
+        <Card className="bg-[#0F1216] border border-[#1E2530] shadow-[0_0_20px_rgba(159,193,49,0.15)]">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-normal text-gray-600">Cartão de Débito</CardTitle>
-            <CreditCard className="w-4 h-4 text-brand-primary icon-3d" />
+            <CardTitle className="text-xs font-normal tracking-wider text-[#9FC131]">Vendas em Cartão D.</CardTitle>
+            <CreditCard className="w-4 h-4 text-[#9FC131]" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-normal text-black">
+            <div className="text-2xl font-normal text-white">
               {formatPrice(metrics.paymentMethods?.CARTAO_DEBITO || 0)}
             </div>
-            <p className="text-xs text-gray-600 mt-1">Total recebido</p>
           </CardContent>
         </Card>
       </div>
-
-      {/* Gráfico de Vendas Diárias */}
-      <Card className="bg-app-card border-app-border tech-shadow">
-        <CardHeader>
-          <CardTitle className="text-lg font-normal text-black">
-            Vendas dos Últimos 7 Dias
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="h-64 flex items-end justify-between gap-2">
-            {dailySales.map((day, index) => {
-              const height = (day.total / maxSales) * 100;
-              const date = new Date(day.date);
-              const dayName = date.toLocaleDateString("pt-BR", { weekday: "short" });
-
-              return (
-                <div key={index} className="flex-1 flex flex-col items-center gap-2">
-                  <div className="relative w-full flex items-end justify-center" style={{ height: "200px" }}>
-                    <div
-                      className="w-full bg-brand-primary rounded-t transition-all hover:opacity-80 tech-shadow"
-                      style={{ height: `${height}%`, minHeight: height > 0 ? "4px" : "0" }}
-                      title={`${dayName}: ${formatPrice(day.total)}`}
-                    />
-                  </div>
-                  <div className="text-xs text-gray-600 text-center">
-                    <div className="font-normal">{formatPrice(day.total)}</div>
-                    <div className="text-[10px] mt-1">{dayName}</div>
-                    <div className="text-[10px] text-gray-500">{day.orders} ped.</div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }
