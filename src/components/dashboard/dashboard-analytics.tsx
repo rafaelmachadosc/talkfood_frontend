@@ -149,20 +149,21 @@ export function DashboardAnalytics({ token }: DashboardAnalyticsProps) {
 
       <Card className="bg-white border border-app-border rounded-lg shadow-none">
         <CardContent className="p-4 space-y-2">
+          <div className="text-sm text-black text-center">Vendas</div>
           <div className="flex items-center justify-between text-sm text-black">
-            <span>Vendas de hoje</span>
+            <span>Hoje</span>
             <span className="text-[#FFA500]">{formatPrice(metrics.totalToday)}</span>
           </div>
           <div className="flex items-center justify-between text-sm text-black">
-            <span>Vendas dos últimos 7 dias</span>
+            <span>7 dias</span>
             <span className="text-[#FFA500]">{formatPrice(total7Days)}</span>
           </div>
           <div className="flex items-center justify-between text-sm text-black">
-            <span>Vendas dos últimos 15 dias</span>
+            <span>15 dias</span>
             <span className="text-[#FFA500]">{formatPrice(total15Days)}</span>
           </div>
           <div className="flex items-center justify-between text-sm text-black">
-            <span>Vendas dos últimos 30 dias</span>
+            <span>30 dias</span>
             <span className="text-[#FFA500]">{formatPrice(total30Days)}</span>
           </div>
           <div className="flex items-center justify-between text-sm text-black pt-2 border-t border-app-border">
@@ -176,20 +177,21 @@ export function DashboardAnalytics({ token }: DashboardAnalyticsProps) {
 
       <Card className="bg-white border border-app-border rounded-lg shadow-none">
         <CardContent className="p-4 space-y-2">
+          <div className="text-sm text-black text-center">Vendas</div>
           <div className="flex items-center justify-between text-sm text-black">
-            <span>Vendas em pix</span>
+            <span>Pix</span>
             <span className="text-[#FFA500]">{formatPrice(metrics.paymentMethods?.PIX || 0)}</span>
           </div>
           <div className="flex items-center justify-between text-sm text-black">
-            <span>Vendas em dinheiro</span>
+            <span>Dinheiro</span>
             <span className="text-[#FFA500]">{formatPrice(metrics.paymentMethods?.DINHEIRO || 0)}</span>
           </div>
           <div className="flex items-center justify-between text-sm text-black">
-            <span>Vendas cartão de crédito</span>
+            <span>Crédito</span>
             <span className="text-[#FFA500]">{formatPrice(metrics.paymentMethods?.CARTAO_CREDITO || 0)}</span>
           </div>
           <div className="flex items-center justify-between text-sm text-black">
-            <span>Vendas em cartão de débito</span>
+            <span>Débito</span>
             <span className="text-[#FFA500]">{formatPrice(metrics.paymentMethods?.CARTAO_DEBITO || 0)}</span>
           </div>
           <div className="flex items-center justify-between text-sm text-black pt-2 border-t border-app-border">
