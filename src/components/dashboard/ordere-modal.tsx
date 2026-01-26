@@ -763,7 +763,7 @@ export function OrderModal({
                       : `Pedido no Balcão${order.name ? ` - ${order.name}` : ""}`}
                   </p>
                 </div>
-                {order.orderType === "MESA" && (
+                {order.orderType === "MESA" && !isKitchen && (
                   <div>
                     <div className="mt-1">
                       <OrderForm
