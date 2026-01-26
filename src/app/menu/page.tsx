@@ -52,10 +52,14 @@ export default function MenuPage() {
           "/api/public/products",
         ]);
 
-        setProducts(productsData);
+        const normalizedProducts = Array.isArray(productsData)
+          ? productsData
+          : ((productsData as unknown as { data?: Product[] })?.data ?? []);
+
+        setProducts(normalizedProducts);
         const uniqueCategories = Array.from(
           new Set(
-            (productsData || [])
+            (normalizedProducts || [])
               .map((p) => (p.category || "").trim())
               .filter((category) => category !== "")
           )
@@ -127,10 +131,7 @@ export default function MenuPage() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <Logo width={120} height={36} className="h-9 w-auto" />
-              <h1 className="text-2xl sm:text-3xl font-normal text-brand-primary tracking-tight">
-                Cardápio Online
-              </h1>
+              <Logo width={180} height={54} className="h-12 w-auto" />
             </div>
             <div className="flex items-center gap-2">
               {savedTable && savedPhone && (
@@ -147,7 +148,7 @@ export default function MenuPage() {
               )}
               <Button
                 onClick={() => setShowCart(true)}
-                className="bg-brand-primary hover:bg-brand-primary/90 text-black tech-shadow tech-hover font-normal relative text-base px-4 py-2"
+                className="bg-brand-primary hover:bg-brand-primary/90 text-black tech-shadow tech-hover font-normal relative text-lg px-6 py-3"
               >
                 <ShoppingCart className="w-5 h-5 mr-2 icon-3d" />
                 Comanda
@@ -167,17 +168,6 @@ export default function MenuPage() {
         {/* Categories Filter */}
         <div className="mb-8">
           <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-            <Button
-              variant={selectedCategory === null ? "default" : "outline"}
-              onClick={() => setSelectedCategory(null)}
-                  className={`text-base px-4 py-2 ${
-                selectedCategory === null
-                  ? "bg-brand-primary text-black"
-                  : "border-app-border text-black hover:bg-gray-100"
-              }`}
-            >
-              Todos
-            </Button>
             {categories.map((category) => (
               <Button
                 key={category}
