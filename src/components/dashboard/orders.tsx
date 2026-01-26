@@ -342,7 +342,7 @@ export function Orders({ token }: OrdersProps) {
           <p className="text-center text-gray-600">Carregando pedidos...</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.3fr_1fr] gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(260px,1fr)_minmax(420px,1.3fr)_minmax(260px,1fr)] gap-4 lg:gap-6">
           {/* Coluna PEDIDOS (Balcão) */}
           <div className="pr-0 lg:pr-2 border-r-0 lg:border-r border-app-border">
             <div className="mb-6 pb-4 border-b border-app-border">
@@ -356,7 +356,7 @@ export function Orders({ token }: OrdersProps) {
                 onChange={(e) => setSearchBalcao(e.target.value)}
               />
             </div>
-            <div className="max-h-[calc(100vh-260px)] overflow-y-auto pr-2">
+            <div className="max-h-[calc(100vh-220px)] lg:max-h-[calc(100vh-260px)] overflow-y-auto pr-2">
               {(() => {
                 const balcaoGroups = groupOrdersByTable(orders)
                   .filter((g) => g.key.startsWith("BALCAO_"))
@@ -384,7 +384,7 @@ export function Orders({ token }: OrdersProps) {
                     <Card
                       key={group.key}
                       className={cn(
-                        "bg-white text-black transition-all duration-300 cursor-pointer border-2 border-cyan-400 w-full h-[72px] shadow-none",
+                        "bg-white text-black transition-all duration-300 cursor-pointer border-2 border-cyan-400 w-full min-h-[72px] h-auto lg:h-[72px] shadow-none",
                         group.hasNewOrders || group.hasInProduction || group.hasOpen ? "shadow-md" : ""
                       )}
                       onClick={() => setSelectedOrder(group.orders[0]?.id || null)}
@@ -423,7 +423,7 @@ export function Orders({ token }: OrdersProps) {
           </div>
 
           {/* Painel central fixo */}
-          <div className="lg:sticky lg:top-4 h-[calc(100vh-170px)]">
+          <div className="lg:sticky lg:top-4 min-h-[320px] h-auto lg:h-[calc(100vh-170px)] lg:min-h-0">
             <OrderModal
               orderId={selectedOrder}
               onClose={async () => {
@@ -448,7 +448,7 @@ export function Orders({ token }: OrdersProps) {
                 onChange={(e) => setSearchMesa(e.target.value)}
               />
             </div>
-            <div className="max-h-[calc(100vh-260px)] overflow-y-auto pr-2">
+            <div className="max-h-[calc(100vh-220px)] lg:max-h-[calc(100vh-260px)] overflow-y-auto pr-2">
               {(() => {
                 const mesaGroups = groupOrdersByTable(orders)
                   .filter((g) => g.key.startsWith("MESA_"))
@@ -475,7 +475,7 @@ export function Orders({ token }: OrdersProps) {
                           key={`MESA_${tableNumber}`}
                           className="relative transition-all duration-300"
                         >
-                          <Card className="bg-white text-black border-2 border-gray-200 w-full h-[72px] p-0 shadow-none">
+                          <Card className="bg-white text-black border-2 border-gray-200 w-full min-h-[72px] h-auto lg:h-[72px] p-0 shadow-none">
                             <div className="p-3.5 h-full grid grid-cols-3 items-center gap-3">
                               <CardTitle className="text-sm font-normal tracking-tight text-left">
                                 <span className="font-semibold">
@@ -528,7 +528,7 @@ export function Orders({ token }: OrdersProps) {
                             }
                           }}
                         >
-                          <Card className="bg-white text-black w-full border-2 border-green-400 h-[72px] p-0 shadow-none">
+                          <Card className="bg-white text-black w-full border-2 border-green-400 min-h-[72px] h-auto lg:h-[72px] p-0 shadow-none">
                             <div className="p-3.5 h-full grid grid-cols-3 items-center gap-3">
                               <div className="flex flex-col gap-0.5 text-left">
                               <CardTitle className="text-sm font-normal tracking-tight">

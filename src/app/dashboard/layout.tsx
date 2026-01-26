@@ -11,7 +11,7 @@ export default async function DashboardLayout({
   const token = await getToken();
 
   return (
-    <div className="flex h-screen overflow-hidden text-black">
+    <div className="flex min-h-dvh overflow-hidden text-black">
       {/* Sidebar DESKTOP */}
       <Sidebar userName={user.name} token={token} />
 
@@ -20,7 +20,9 @@ export default async function DashboardLayout({
         <MobileSidebar />
 
         <main className="flex-1 overflow-y-auto bg-app-background">
-          <div className="container max-w-full px-4 py-6">{children}</div>
+          <div className="mx-auto w-full max-w-none px-3 sm:px-4 lg:px-6 2xl:px-8 py-4 sm:py-6">
+            {children}
+          </div>
         </main>
       </div>
     </div>
