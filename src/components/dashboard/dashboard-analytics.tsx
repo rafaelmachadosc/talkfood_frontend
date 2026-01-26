@@ -259,29 +259,43 @@ export function DashboardAnalytics({ token }: DashboardAnalyticsProps) {
         <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[#9FC131]/40 to-transparent" />
       </div>
 
-      <div className="flex items-center justify-between text-xs text-black">
+      <div className="space-y-2 text-xs text-black">
         <span className="uppercase tracking-wide text-gray-600">Calendário</span>
-        <div className="flex items-center gap-2">
-          <label htmlFor="dashboard-start-date" className="text-[11px] text-gray-500">
-            De
-          </label>
-          <input
-            type="date"
-            id="dashboard-start-date"
-            value={startDate}
-            onChange={(event) => setStartDate(event.target.value)}
-            className="border border-app-border rounded-md px-2 py-1 text-xs text-black bg-white"
-          />
-          <label htmlFor="dashboard-end-date" className="text-[11px] text-gray-500">
-            Até
-          </label>
-          <input
-            type="date"
-            id="dashboard-end-date"
-            value={endDate}
-            onChange={(event) => setEndDate(event.target.value)}
-            className="border border-app-border rounded-md px-2 py-1 text-xs text-black bg-white"
-          />
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-2">
+            <label htmlFor="dashboard-start-date" className="text-[11px] text-gray-500 w-10">
+              De
+            </label>
+            <input
+              type="date"
+              id="dashboard-start-date"
+              value={startDate}
+              onChange={(event) => setStartDate(event.target.value)}
+              className="flex-1 border border-app-border rounded-md px-2 py-1 text-xs text-black bg-white"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <label htmlFor="dashboard-end-date" className="text-[11px] text-gray-500 w-10">
+              Até
+            </label>
+            <input
+              type="date"
+              id="dashboard-end-date"
+              value={endDate}
+              onChange={(event) => setEndDate(event.target.value)}
+              className="flex-1 border border-app-border rounded-md px-2 py-1 text-xs text-black bg-white"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setLoading(true);
+              setTimeout(() => setLoading(false), 0);
+            }}
+            className="w-full rounded-md bg-[#FFA500] text-black text-xs py-1.5"
+          >
+            Consultar
+          </button>
         </div>
       </div>
 
