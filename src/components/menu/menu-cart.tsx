@@ -5,12 +5,12 @@ import { Button } from "@/components/ui/button";
 import { X, Plus, Minus, ShoppingBag } from "lucide-react";
 import { formatPrice } from "@/lib/format";
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface CartItem {
   product: Product;
@@ -37,16 +37,16 @@ export function MenuCart({
   total,
 }: MenuCartProps) {
   return (
-    <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent className="w-full sm:max-w-md bg-app-card border-app-border text-black overflow-y-auto">
-        <SheetHeader>
-          <SheetTitle className="text-2xl sm:text-3xl font-normal text-black tracking-tight">
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="w-full sm:max-w-md bg-app-card border-app-border text-black overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="text-2xl sm:text-3xl font-normal text-black tracking-tight">
             Comanda
-          </SheetTitle>
-          <SheetDescription className="text-gray-600 text-base">
+          </DialogTitle>
+          <DialogDescription className="text-gray-600 text-base">
             Revise seus itens antes de solicitar o pedido
-          </SheetDescription>
-        </SheetHeader>
+          </DialogDescription>
+        </DialogHeader>
 
         <div className="mt-6 space-y-4">
           {cart.length === 0 ? (
@@ -138,7 +138,7 @@ export function MenuCart({
             </>
           )}
         </div>
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   );
 }

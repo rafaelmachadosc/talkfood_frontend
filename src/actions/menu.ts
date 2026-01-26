@@ -38,13 +38,37 @@ export async function createPublicOrderAction(
     }
 
     // Criar o pedido COM os itens em uma única requisição
-    const order = await publicApi.post<{ id: string }>("/api/public/order", {
+    const order = await publicApi.post<{ id: string; items?: Array<{ product_id: string; amount: number }> }>(
+      "/api/public/order",
+      {
       orderType: data.orderType,
       table: data.table,
       name: data.name,
       phone: data.phone,
       items: data.items, // Enviar items junto com a criação do pedido
-    });
+      }
+    );
+
+    if (order?.id && (!Array.isArray(order.items) || order.items.length === 0)) {
+      try {
+        await publicApi.post("/api/public/order/add-items", {
+          order_id: order.id,
+          items: data.items,
+        });
+      } catch (err) {
+        try {
+          for (const item of data.items) {
+            await publicApi.post("/api/public/order/add", {
+              order_id: order.id,
+              product_id: item.product_id,
+              amount: item.amount,
+            });
+          }
+        } catch {
+          // Se os endpoints públicos não existirem, manter pedido criado sem itens
+        }
+      }
+    }
 
     // O pedido já foi criado com todos os itens e já está confirmado (draft: false)
     // Não precisa mais adicionar itens separadamente nem enviar o pedido

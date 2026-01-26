@@ -148,9 +148,9 @@ export default function MenuPage() {
               )}
               <Button
                 onClick={() => setShowCart(true)}
-                className="bg-brand-primary hover:bg-brand-primary/90 text-black tech-shadow tech-hover font-normal relative text-lg px-6 py-3"
+                className="bg-brand-primary hover:bg-brand-primary/90 text-black tech-shadow tech-hover font-normal relative text-xl px-8 py-4"
               >
-                <ShoppingCart className="w-5 h-5 mr-2 icon-3d" />
+                <ShoppingCart className="w-6 h-6 mr-2 icon-3d" />
                 Comanda
                 {cartItemCount > 0 && (
                   <span className="ml-2 bg-white text-brand-primary rounded-full px-2 py-0.5 text-xs font-normal">
@@ -173,7 +173,7 @@ export default function MenuPage() {
                 key={category}
                 variant={selectedCategory === category ? "default" : "outline"}
                 onClick={() => setSelectedCategory(category)}
-                className={`text-base px-4 py-2 ${
+                className={`text-lg px-6 py-3 ${
                   selectedCategory === category
                     ? "bg-brand-primary text-black"
                     : "border-app-border text-black hover:bg-gray-100"
@@ -213,9 +213,9 @@ export default function MenuPage() {
                     <Button
                       onClick={() => addToCart(product)}
                       size="sm"
-                      className="bg-brand-primary hover:bg-brand-primary/90 text-black tech-shadow tech-hover font-normal text-base px-4 py-2"
+                      className="bg-brand-primary hover:bg-brand-primary/90 text-black tech-shadow tech-hover font-normal text-lg px-6 py-3"
                     >
-                      <Plus className="w-4 h-4 mr-1 icon-3d" />
+                      <Plus className="w-5 h-5 mr-2 icon-3d" />
                       Adicionar
                     </Button>
                   </div>
