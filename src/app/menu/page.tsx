@@ -185,32 +185,31 @@ export default function MenuPage() {
           </div>
         </div>
 
-        {/* Products Grid */}
+        {/* Products List */}
         {filteredProducts.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-gray-600 text-lg">Nenhum produto disponível</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="flex flex-col gap-6">
             {filteredProducts.map((product) => (
               <Card
                 key={product.id}
                 className="bg-app-card border-app-border tech-shadow tech-hover hover:border-brand-primary/30"
               >
-                <CardHeader>
-                  <CardTitle className="text-2xl sm:text-3xl">{product.name}</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-5">
-                  <div className="flex flex-col gap-3">
-                    <div className="w-full border-t border-app-border" />
-                    <p className="text-lg sm:text-xl text-gray-700 line-clamp-2 self-end text-right max-w-[85%]">
-                      {product.description || "-"}
-                    </p>
-                  </div>
-                  <div className="flex items-center justify-between">
+                <CardContent className="p-6 flex flex-col gap-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <h2 className="text-2xl sm:text-3xl font-normal text-black">
+                      {product.name}
+                    </h2>
                     <span className="text-2xl sm:text-3xl font-normal text-brand-primary">
                       {formatPrice(product.price)}
                     </span>
+                  </div>
+                  <p className="text-lg sm:text-xl text-gray-700 leading-relaxed">
+                    {product.description || "-"}
+                  </p>
+                  <div className="flex items-center justify-end">
                     <Button
                       onClick={() => addToCart(product)}
                       size="sm"
