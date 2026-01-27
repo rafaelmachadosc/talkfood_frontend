@@ -19,10 +19,10 @@ interface CartItem {
 
 export default function MenuPage() {
   const establishmentInfo = {
-    name: "BARI CAFFE",
+    name: "Estação Café",
     category: "Cafeteria",
-    status: "Fechada",
-    addressNote: "Selecione um endereço para entrega",
+    status: "Aberta entre 09:00 as 19:00 Terça a Domingo",
+    addressNote: "R. Maria Hruschka Rubini, 22 - sala 05 - Barra do Rio Cerro",
     minOrder: "R$ 25,00",
   };
   const [categories, setCategories] = useState<string[]>([]);
