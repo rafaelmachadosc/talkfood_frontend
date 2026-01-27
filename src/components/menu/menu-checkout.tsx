@@ -177,7 +177,7 @@ export function MenuCheckout({
             <Input
               id="table"
               name="table"
-              type="number"
+              type="text"
               required
               placeholder="Ex: 5"
               className="border-app-border bg-white text-black text-lg py-3"

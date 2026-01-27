@@ -181,7 +181,10 @@ export default function MenuPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-app-background flex items-center justify-center">
-        <p className="text-black text-xl">Carregando cardápio...</p>
+        <div className="flex flex-col items-center gap-4">
+          <Logo width={240} height={72} className="h-16 sm:h-20 w-auto" />
+          <p className="text-black text-xl">Carregando cardápio...</p>
+        </div>
       </div>
     );
   }
@@ -193,7 +196,7 @@ export default function MenuPage() {
         <div className="w-full px-4 py-4">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <Logo width={240} height={72} className="h-16 sm:h-20 w-auto" />
+              <Logo width={220} height={66} className="h-14 sm:h-16 w-auto" />
             </div>
             <div className="flex items-center gap-2">
               {savedTable && savedPhone && (
@@ -210,12 +213,12 @@ export default function MenuPage() {
               )}
               <Button
                 onClick={() => setShowCart(true)}
-                className="bg-brand-primary hover:bg-brand-primary/90 text-black tech-shadow tech-hover font-normal relative text-3xl px-12 py-6"
+                className="bg-brand-primary hover:bg-brand-primary/90 text-black tech-shadow tech-hover font-normal relative text-2xl px-10 py-5"
               >
-                <ShoppingCart className="w-8 h-8 mr-3 icon-3d" />
+                <ShoppingCart className="w-7 h-7 mr-3 icon-3d" />
                 Comanda
                 {cartItemCount > 0 && (
-                  <span className="ml-3 bg-white text-brand-primary rounded-full px-4 py-1.5 text-base font-normal">
+                  <span className="ml-3 bg-white text-brand-primary rounded-full px-3 py-1 text-sm font-normal">
                     {cartItemCount}
                   </span>
                 )}
@@ -228,16 +231,13 @@ export default function MenuPage() {
       {/* Main Content */}
       <main className="w-full px-4 py-6">
         {/* Establishment Info */}
-        <div className="mb-6">
+        <div className="mb-4">
           <Card className="bg-app-card border-app-border shadow-none">
-            <CardContent className="p-5">
+            <CardContent className="p-4">
               <div className="flex items-center gap-4">
-                <div className="h-16 w-16 rounded-2xl bg-brand-primary/10 flex items-center justify-center text-brand-primary text-xl font-normal">
-                  {establishmentInfo.name.slice(0, 2)}
-                </div>
                 <div className="flex-1">
                   <div className="flex items-center justify-between">
-                    <h2 className="text-xl sm:text-2xl font-normal text-black">
+                    <h2 className="text-lg sm:text-xl font-normal text-black">
                       {establishmentInfo.name}
                     </h2>
                     <span className="text-lg text-gray-500">›</span>
@@ -250,7 +250,7 @@ export default function MenuPage() {
                       {establishmentInfo.status}
                     </span>
                   </div>
-                  <div className="mt-3 space-y-1 text-sm text-gray-600">
+                  <div className="mt-2 space-y-1 text-sm text-gray-600">
                     <div>{establishmentInfo.addressNote}</div>
                   </div>
                 </div>
@@ -272,7 +272,7 @@ export default function MenuPage() {
                     node.scrollIntoView({ behavior: "smooth", block: "start" });
                   }
                 }}
-                className={`text-2xl px-10 py-5 whitespace-nowrap ${
+                className={`text-xl px-8 py-4 whitespace-nowrap ${
                   selectedCategory === section.category
                     ? "bg-[#FFA500] text-black"
                     : "border-app-border text-black hover:bg-gray-100"
@@ -315,23 +315,23 @@ export default function MenuPage() {
                     >
                       <CardContent className="p-6 flex flex-col gap-4">
                         <div className="flex items-start justify-between gap-4">
-                          <h2 className="text-2xl sm:text-3xl font-normal text-black">
+                          <h2 className="text-xl sm:text-2xl font-normal text-black">
                             {product.name}
                           </h2>
-                          <span className="text-2xl sm:text-3xl font-normal text-brand-primary">
+                          <span className="text-xl sm:text-2xl font-normal text-brand-primary">
                             {formatPrice(product.price)}
                           </span>
                         </div>
-                        <p className="text-lg sm:text-xl text-gray-700 leading-relaxed">
+                        <p className="text-base sm:text-lg text-gray-700 leading-relaxed">
                           {product.description || "-"}
                         </p>
                         <div className="flex items-center justify-end">
                           <Button
                             onClick={() => addToCart(product)}
                             size="sm"
-                            className="bg-brand-primary hover:bg-brand-primary/90 text-black tech-shadow tech-hover font-normal text-2xl px-10 py-5"
+                            className="bg-brand-primary hover:bg-brand-primary/90 text-black tech-shadow tech-hover font-normal text-xl px-8 py-4"
                           >
-                            <Plus className="w-7 h-7 mr-2 icon-3d" />
+                            <Plus className="w-6 h-6 mr-2 icon-3d" />
                             Adicionar
                           </Button>
                         </div>
