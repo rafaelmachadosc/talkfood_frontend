@@ -108,8 +108,6 @@ export default function MenuPage() {
       "-",
       "Adicionais",
       "-",
-      "Chás Gelados",
-      "-",
       "Chcolate Quente",
       "-",
       "Salgado",
@@ -165,8 +163,8 @@ export default function MenuPage() {
         }
       },
       {
-        rootMargin: "-100px 0px -60% 0px",
-        threshold: 0.1,
+        rootMargin: "-140px 0px -70% 0px",
+        threshold: 0,
       }
     );
     sections.forEach((section) => {
@@ -355,12 +353,15 @@ export default function MenuPage() {
             {sections.map((section) => (
               <div
                 key={section.category}
-                ref={(node) => {
-                  sectionRefs.current[section.category] = node;
-                }}
-                data-category={section.category}
                 className="scroll-mt-[160px]"
               >
+                <div
+                  ref={(node: HTMLDivElement | null) => {
+                    sectionRefs.current[section.category] = node;
+                  }}
+                  data-category={section.category}
+                  className="h-1"
+                />
                 <div className="flex items-center gap-3 mb-6">
                   <div className="h-px flex-1 bg-app-border" />
                   <h2 className="text-2xl sm:text-3xl font-normal text-black">
