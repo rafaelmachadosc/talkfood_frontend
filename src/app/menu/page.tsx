@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useMemo, useRef, useState, useEffect } from "react";
 import { Product } from "@/lib/types";
 import { fetchPublicAll } from "@/core/http/public-api-helper";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -75,9 +75,52 @@ export default function MenuPage() {
     loadData();
   }, []);
 
-  const filteredProducts = selectedCategory
-    ? products.filter((p) => (p.category || "").trim() === selectedCategory)
-    : products;
+  const productsByCategory = useMemo(() => {
+    const map = new Map<string, Product[]>();
+    products.forEach((product) => {
+      const category = (product.category || "").trim() || "Sem categoria";
+      if (!map.has(category)) {
+        map.set(category, []);
+      }
+      map.get(category)!.push(product);
+    });
+    return map;
+  }, [products]);
+
+  const sections = useMemo(() => {
+    const ordered = categories.length ? categories : Array.from(productsByCategory.keys());
+    return ordered.map((category) => ({
+      category,
+      products: productsByCategory.get(category) || [],
+    })).filter(section => section.products.length > 0);
+  }, [categories, productsByCategory]);
+
+  const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  useEffect(() => {
+    if (!sections.length) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => (a.boundingClientRect.top - b.boundingClientRect.top));
+        if (visible[0]) {
+          const category = visible[0].target.getAttribute("data-category");
+          if (category) {
+            setSelectedCategory(category);
+          }
+        }
+      },
+      {
+        rootMargin: "-100px 0px -60% 0px",
+        threshold: 0.1,
+      }
+    );
+    sections.forEach((section) => {
+      const node = sectionRefs.current[section.category];
+      if (node) observer.observe(node);
+    });
+    return () => observer.disconnect();
+  }, [sections]);
 
   const addToCart = (product: Product) => {
     setCart((prevCart) => {
@@ -128,10 +171,10 @@ export default function MenuPage() {
     <div className="min-h-screen bg-app-background text-black">
       {/* Header */}
       <header className="bg-app-card border-b border-app-border sticky top-0 z-40">
-        <div className="container mx-auto px-4 py-4">
+        <div className="w-full px-4 py-4">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <Logo width={220} height={66} className="h-16 w-auto" />
+              <Logo width={240} height={72} className="h-16 sm:h-20 w-auto" />
             </div>
             <div className="flex items-center gap-2">
               {savedTable && savedPhone && (
@@ -148,12 +191,12 @@ export default function MenuPage() {
               )}
               <Button
                 onClick={() => setShowCart(true)}
-                className="bg-brand-primary hover:bg-brand-primary/90 text-black tech-shadow tech-hover font-normal relative text-2xl px-10 py-5"
+                className="bg-brand-primary hover:bg-brand-primary/90 text-black tech-shadow tech-hover font-normal relative text-3xl px-12 py-6"
               >
-                <ShoppingCart className="w-7 h-7 mr-3 icon-3d" />
+                <ShoppingCart className="w-8 h-8 mr-3 icon-3d" />
                 Comanda
                 {cartItemCount > 0 && (
-                  <span className="ml-3 bg-white text-brand-primary rounded-full px-3 py-1 text-sm font-normal">
+                  <span className="ml-3 bg-white text-brand-primary rounded-full px-4 py-1.5 text-base font-normal">
                     {cartItemCount}
                   </span>
                 )}
@@ -164,63 +207,88 @@ export default function MenuPage() {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
+      <main className="w-full px-4 py-6">
         {/* Categories Filter */}
-        <div className="mb-8">
-          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-            {categories.map((category) => (
+        <div className="sticky top-[96px] z-30 bg-app-background pt-2 pb-3">
+          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+            {sections.map((section) => (
               <Button
-                key={category}
-                variant={selectedCategory === category ? "default" : "outline"}
-                onClick={() => setSelectedCategory(category)}
-                className={`text-xl px-8 py-4 ${
-                  selectedCategory === category
+                key={section.category}
+                variant={selectedCategory === section.category ? "default" : "outline"}
+                onClick={() => {
+                  const node = sectionRefs.current[section.category];
+                  if (node) {
+                    node.scrollIntoView({ behavior: "smooth", block: "start" });
+                  }
+                }}
+                className={`text-2xl px-10 py-5 whitespace-nowrap ${
+                  selectedCategory === section.category
                     ? "bg-brand-primary text-black"
                     : "border-app-border text-black hover:bg-gray-100"
                 }`}
               >
-                {category}
+                {section.category}
               </Button>
             ))}
           </div>
         </div>
 
         {/* Products List */}
-        {filteredProducts.length === 0 ? (
+        {products.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-gray-600 text-lg">Nenhum produto disponível</p>
           </div>
         ) : (
-          <div className="flex flex-col gap-6">
-            {filteredProducts.map((product) => (
-              <Card
-                key={product.id}
-                className="bg-app-card border-app-border tech-shadow tech-hover hover:border-brand-primary/30"
+          <div className="flex flex-col gap-10">
+            {sections.map((section) => (
+              <div
+                key={section.category}
+                ref={(node) => {
+                  sectionRefs.current[section.category] = node;
+                }}
+                data-category={section.category}
+                className="scroll-mt-[160px]"
               >
-                <CardContent className="p-6 flex flex-col gap-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <h2 className="text-2xl sm:text-3xl font-normal text-black">
-                      {product.name}
-                    </h2>
-                    <span className="text-2xl sm:text-3xl font-normal text-brand-primary">
-                      {formatPrice(product.price)}
-                    </span>
-                  </div>
-                  <p className="text-lg sm:text-xl text-gray-700 leading-relaxed">
-                    {product.description || "-"}
-                  </p>
-                  <div className="flex items-center justify-end">
-                    <Button
-                      onClick={() => addToCart(product)}
-                      size="sm"
-                      className="bg-brand-primary hover:bg-brand-primary/90 text-black tech-shadow tech-hover font-normal text-xl px-8 py-4"
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="h-px flex-1 bg-app-border" />
+                  <h2 className="text-2xl sm:text-3xl font-normal text-black">
+                    {section.category}
+                  </h2>
+                  <div className="h-px flex-1 bg-app-border" />
+                </div>
+                <div className="flex flex-col gap-6">
+                  {section.products.map((product) => (
+                    <Card
+                      key={product.id}
+                      className="bg-app-card border-app-border tech-shadow tech-hover hover:border-brand-primary/30"
                     >
-                      <Plus className="w-6 h-6 mr-2 icon-3d" />
-                      Adicionar
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+                      <CardContent className="p-6 flex flex-col gap-4">
+                        <div className="flex items-start justify-between gap-4">
+                          <h2 className="text-2xl sm:text-3xl font-normal text-black">
+                            {product.name}
+                          </h2>
+                          <span className="text-2xl sm:text-3xl font-normal text-brand-primary">
+                            {formatPrice(product.price)}
+                          </span>
+                        </div>
+                        <p className="text-lg sm:text-xl text-gray-700 leading-relaxed">
+                          {product.description || "-"}
+                        </p>
+                        <div className="flex items-center justify-end">
+                          <Button
+                            onClick={() => addToCart(product)}
+                            size="sm"
+                            className="bg-brand-primary hover:bg-brand-primary/90 text-black tech-shadow tech-hover font-normal text-2xl px-10 py-5"
+                          >
+                            <Plus className="w-7 h-7 mr-2 icon-3d" />
+                            Adicionar
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
         )}
