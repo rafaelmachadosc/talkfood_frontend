@@ -95,15 +95,51 @@ export default function MenuPage() {
     return map;
   }, [products]);
 
+  const categoryOrder = useMemo(
+    () => [
+      "Cafés Tradicionais",
+      "Cafés Especiais Quentes",
+      "Chás Gelados",
+      "Cafés Alcoolicos",
+      "-",
+      "Bebidas",
+      "Bebidas com Alcool",
+      "Açai",
+      "-",
+      "Adicionais",
+      "-",
+      "Chás Gelados",
+      "-",
+      "Chcolate Quente",
+      "-",
+      "Salgado",
+      "Lanches",
+      "Frapês",
+      "-",
+      "Cookies",
+      ".",
+    ],
+    []
+  );
+
   const sections = useMemo(() => {
-    const ordered = categories.length ? categories : Array.from(productsByCategory.keys());
-    return ordered.map((category) => ({
-      category,
-      products: productsByCategory.get(category) || [],
-    })).filter(section => section.products.length > 0);
-  }, [categories, productsByCategory]);
+    const allCategories = categories.length ? categories : Array.from(productsByCategory.keys());
+    const normalizedOrder = categoryOrder
+      .map((category) => category.trim())
+      .filter((category) => category !== "-" && category !== ".");
+    const orderedUnique = Array.from(new Set(normalizedOrder));
+    const remaining = allCategories.filter((category) => !orderedUnique.includes(category));
+    const finalOrder = [...orderedUnique, ...remaining];
+    return finalOrder
+      .map((category) => ({
+        category,
+        products: productsByCategory.get(category) || [],
+      }))
+      .filter((section) => section.products.length > 0);
+  }, [categories, productsByCategory, categoryOrder]);
 
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const categoryButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const rafRef = useRef<number | null>(null);
   useEffect(() => {
     if (!sections.length) return;
@@ -120,6 +156,10 @@ export default function MenuPage() {
             }
             rafRef.current = requestAnimationFrame(() => {
               setSelectedCategory(category);
+              const button = categoryButtonRefs.current[category];
+              if (button) {
+                button.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+              }
             });
           }
         }
@@ -268,25 +308,40 @@ export default function MenuPage() {
         {/* Categories Filter */}
         <div className="sticky top-[96px] z-30 bg-app-background pt-2 pb-3">
           <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-            {sections.map((section) => (
-              <Button
-                key={section.category}
-                variant={selectedCategory === section.category ? "default" : "outline"}
-                onClick={() => {
-                  const node = sectionRefs.current[section.category];
-                  if (node) {
-                    node.scrollIntoView({ behavior: "smooth", block: "start" });
-                  }
-                }}
-                className={`text-xl px-8 py-4 whitespace-nowrap ${
-                  selectedCategory === section.category
-                    ? "!bg-[#FFA500] !text-black"
-                    : "border-app-border text-black hover:bg-gray-100"
-                }`}
-              >
-                {section.category}
-              </Button>
-            ))}
+            {categoryOrder.map((category, index) => {
+              const normalized = category.trim();
+              if (normalized === "-") {
+                return <div key={`divider-${index}`} className="w-6 h-px bg-app-border my-4" />;
+              }
+              if (normalized === ".") {
+                return <div key={`spacer-${index}`} className="w-2" />;
+              }
+              if (!sections.find((section) => section.category === normalized)) {
+                return null;
+              }
+              return (
+                <Button
+                  key={normalized}
+                  ref={(node: HTMLButtonElement | null) => {
+                    categoryButtonRefs.current[normalized] = node;
+                  }}
+                  variant={selectedCategory === normalized ? "default" : "outline"}
+                  onClick={() => {
+                    const node = sectionRefs.current[normalized];
+                    if (node) {
+                      node.scrollIntoView({ behavior: "smooth", block: "start" });
+                    }
+                  }}
+                  className={`text-xl px-8 py-4 whitespace-nowrap ${
+                    selectedCategory === normalized
+                      ? "!bg-[#FFA500] !text-black"
+                      : "border-app-border text-black hover:bg-gray-100"
+                  }`}
+                >
+                  {normalized}
+                </Button>
+              );
+            })}
           </div>
         </div>
 
