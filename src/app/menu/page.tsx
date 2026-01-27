@@ -18,6 +18,13 @@ interface CartItem {
 }
 
 export default function MenuPage() {
+  const establishmentInfo = {
+    name: "BARI CAFFE",
+    category: "Cafeteria",
+    status: "Fechada",
+    addressNote: "Selecione um endereço para entrega",
+    minOrder: "R$ 25,00",
+  };
   const [categories, setCategories] = useState<string[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -96,6 +103,7 @@ export default function MenuPage() {
   }, [categories, productsByCategory]);
 
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const rafRef = useRef<number | null>(null);
   useEffect(() => {
     if (!sections.length) return;
     const observer = new IntersectionObserver(
@@ -105,8 +113,13 @@ export default function MenuPage() {
           .sort((a, b) => (a.boundingClientRect.top - b.boundingClientRect.top));
         if (visible[0]) {
           const category = visible[0].target.getAttribute("data-category");
-          if (category) {
-            setSelectedCategory(category);
+          if (category && category !== selectedCategory) {
+            if (rafRef.current !== null) {
+              cancelAnimationFrame(rafRef.current);
+            }
+            rafRef.current = requestAnimationFrame(() => {
+              setSelectedCategory(category);
+            });
           }
         }
       },
@@ -119,8 +132,13 @@ export default function MenuPage() {
       const node = sectionRefs.current[section.category];
       if (node) observer.observe(node);
     });
-    return () => observer.disconnect();
-  }, [sections]);
+    return () => {
+      observer.disconnect();
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+      }
+    };
+  }, [sections, selectedCategory]);
 
   const addToCart = (product: Product) => {
     setCart((prevCart) => {
@@ -208,6 +226,38 @@ export default function MenuPage() {
 
       {/* Main Content */}
       <main className="w-full px-4 py-6">
+        {/* Establishment Info */}
+        <div className="mb-6">
+          <Card className="bg-app-card border-app-border shadow-none">
+            <CardContent className="p-5">
+              <div className="flex items-center gap-4">
+                <div className="h-16 w-16 rounded-2xl bg-brand-primary/10 flex items-center justify-center text-brand-primary text-xl font-normal">
+                  {establishmentInfo.name.slice(0, 2)}
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-xl sm:text-2xl font-normal text-black">
+                      {establishmentInfo.name}
+                    </h2>
+                    <span className="text-lg text-gray-500">›</span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 mt-2">
+                    <span className="text-sm text-gray-600">
+                      {establishmentInfo.category}
+                    </span>
+                    <span className="text-sm text-orange-600 border border-orange-200 px-2 py-0.5 rounded-full">
+                      {establishmentInfo.status}
+                    </span>
+                  </div>
+                  <div className="mt-3 space-y-1 text-sm text-gray-600">
+                    <div>{establishmentInfo.addressNote}</div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Categories Filter */}
         <div className="sticky top-[96px] z-30 bg-app-background pt-2 pb-3">
           <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
@@ -223,7 +273,7 @@ export default function MenuPage() {
                 }}
                 className={`text-2xl px-10 py-5 whitespace-nowrap ${
                   selectedCategory === section.category
-                    ? "bg-brand-primary text-black"
+                    ? "bg-[#FFA500] text-black"
                     : "border-app-border text-black hover:bg-gray-100"
                 }`}
               >
@@ -260,7 +310,7 @@ export default function MenuPage() {
                   {section.products.map((product) => (
                     <Card
                       key={product.id}
-                      className="bg-app-card border-app-border tech-shadow tech-hover hover:border-brand-primary/30"
+                      className="bg-app-card border-app-border shadow-none hover:border-brand-primary/30"
                     >
                       <CardContent className="p-6 flex flex-col gap-4">
                         <div className="flex items-start justify-between gap-4">
