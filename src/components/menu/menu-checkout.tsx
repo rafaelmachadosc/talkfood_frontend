@@ -56,7 +56,11 @@ export function MenuCheckout({
 
   async function handlePrintReceipt(orderId: string) {
     try {
-      const response = await fetch("/api/print/receipt", {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL;
+      if (!baseUrl) {
+        return;
+      }
+      const response = await fetch(`${baseUrl}/api/print/receipt`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -749,7 +749,12 @@ export function OrderModal({
   const handlePrintReceipt = async () => {
     if (!orderId) return;
     try {
-      const response = await fetch("/api/print/receipt", {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL;
+      if (!baseUrl) {
+        alert("API não configurada.");
+        return;
+      }
+      const response = await fetch(`${baseUrl}/api/print/receipt`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

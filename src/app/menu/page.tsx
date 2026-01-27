@@ -41,6 +41,7 @@ export default function MenuPage() {
 
   // Carregar mesa e telefone salvos do localStorage
   useEffect(() => {
+    console.log("API:", process.env.NEXT_PUBLIC_API_URL);
     if (typeof window !== "undefined") {
       const savedTableStr = localStorage.getItem("comanda_table");
       const savedPhoneStr = localStorage.getItem("comanda_phone");
