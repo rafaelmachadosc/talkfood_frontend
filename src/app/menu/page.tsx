@@ -177,13 +177,19 @@ export default function MenuPage() {
   );
 
   const cartItemCount = cart.reduce((count, item) => count + item.quantity, 0);
+  const cartQuantities = useMemo(() => {
+    const map = new Map<string, number>();
+    cart.forEach((item) => {
+      map.set(item.product.id, item.quantity);
+    });
+    return map;
+  }, [cart]);
 
   if (loading) {
     return (
       <div className="min-h-screen bg-app-background flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
+        <div className="flex flex-col items-center">
           <Logo width={240} height={72} className="h-16 sm:h-20 w-auto" />
-          <p className="text-black text-xl">Carregando cardápio...</p>
         </div>
       </div>
     );
@@ -274,7 +280,7 @@ export default function MenuPage() {
                 }}
                 className={`text-xl px-8 py-4 whitespace-nowrap ${
                   selectedCategory === section.category
-                    ? "bg-[#FFA500] text-black"
+                    ? "!bg-[#FFA500] !text-black"
                     : "border-app-border text-black hover:bg-gray-100"
                 }`}
               >
@@ -313,27 +319,60 @@ export default function MenuPage() {
                       key={product.id}
                       className="bg-app-card border-app-border shadow-none hover:border-brand-primary/30"
                     >
-                      <CardContent className="p-6 flex flex-col gap-4">
+                      <CardContent className="p-6">
                         <div className="flex items-start justify-between gap-4">
-                          <h2 className="text-xl sm:text-2xl font-normal text-black">
-                            {product.name}
-                          </h2>
-                          <span className="text-xl sm:text-2xl font-normal text-brand-primary">
+                          <div className="flex-1">
+                            <h2 className="text-xl sm:text-2xl font-normal text-black">
+                              {product.name}
+                            </h2>
+                            <p className="text-base sm:text-lg text-gray-700 leading-relaxed mt-2">
+                              {product.description || "-"}
+                            </p>
+                          </div>
+                          <div className="w-24 h-20 sm:w-28 sm:h-24 rounded-xl border-2 border-black/10 flex items-center justify-center text-xs text-gray-500 text-center">
+                            FOTO DO<br />PRODUTO<br />AQUI
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between mt-6">
+                          <span className="text-2xl sm:text-3xl font-normal text-brand-primary">
                             {formatPrice(product.price)}
                           </span>
-                        </div>
-                        <p className="text-base sm:text-lg text-gray-700 leading-relaxed">
-                          {product.description || "-"}
-                        </p>
-                        <div className="flex items-center justify-end">
-                          <Button
-                            onClick={() => addToCart(product)}
-                            size="sm"
-                            className="bg-brand-primary hover:bg-brand-primary/90 text-black tech-shadow tech-hover font-normal text-xl px-8 py-4"
-                          >
-                            <Plus className="w-6 h-6 mr-2 icon-3d" />
-                            Adicionar
-                          </Button>
+                          {(() => {
+                            const quantity = cartQuantities.get(product.id) || 0;
+                            if (quantity === 0) {
+                              return (
+                                <Button
+                                  onClick={() => addToCart(product)}
+                                  size="sm"
+                                  className="bg-brand-primary hover:bg-brand-primary/90 text-black font-normal text-xl px-8 py-4"
+                                >
+                                  <Plus className="w-6 h-6 mr-2" />
+                                  Adicionar
+                                </Button>
+                              );
+                            }
+                            return (
+                              <div className="flex items-center gap-4">
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  onClick={() => updateQuantity(product.id, quantity - 1)}
+                                  className="h-12 w-12 border-app-border text-xl"
+                                >
+                                  <Minus className="w-6 h-6" />
+                                </Button>
+                                <span className="text-xl font-normal">{quantity}</span>
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  onClick={() => updateQuantity(product.id, quantity + 1)}
+                                  className="h-12 w-12 border-app-border text-xl"
+                                >
+                                  <Plus className="w-6 h-6" />
+                                </Button>
+                              </div>
+                            );
+                          })()}
                         </div>
                       </CardContent>
                     </Card>

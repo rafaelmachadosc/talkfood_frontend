@@ -17,6 +17,8 @@ export const metadata: Metadata = {
   description: "TalkFood",
   icons: {
     icon: "/logo.png",
+    apple: "/logo.png",
+    shortcut: "/logo.png",
   },
 };
 
