@@ -2225,11 +2225,12 @@ export function OrderModal({
                   <span className="text-xl font-normal text-brand-primary">
                     {formatPrice(
                       Array.from(selectedProducts).reduce((sum, id) => {
-                        const product = products.find(p => p.id === id);
-                        return sum + (product ? product.price * quantity : 0);
+                        const product = products.find((p) => p.id === id);
+                        const itemQuantity = productQuantities[id] ?? 1;
+                        return sum + (product ? product.price * itemQuantity : 0);
                       }, 0) +
                       Array.from(selectedAdicionais).reduce((sum, id) => {
-                        const product = products.find(p => p.id === id);
+                        const product = products.find((p) => p.id === id);
                         return sum + (product ? product.price : 0);
                       }, 0)
                     )}
