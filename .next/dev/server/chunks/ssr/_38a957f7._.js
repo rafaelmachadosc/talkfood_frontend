@@ -53,7 +53,11 @@ class CloudflareTunnelStrategy {
     config;
     constructor(tunnelUrl){
         // Prioridade: parâmetro > variável de ambiente > domínio padrão
-        const tunnelHost = tunnelUrl || process.env.NEXT_PUBLIC_CLOUDFLARE_TUNNEL_URL || "https://talkfoodsoftwerk.net";
+        let tunnelHost = tunnelUrl?.trim() || process.env.NEXT_PUBLIC_CLOUDFLARE_TUNNEL_URL?.trim() || "https://talkfoodsoftwerk.net";
+        // Garantir que sempre temos uma URL válida (fallback de segurança)
+        if (!tunnelHost || tunnelHost === "") {
+            tunnelHost = "https://talkfoodsoftwerk.net";
+        }
         this.config = {
             type: "cloudflare",
             frontendPort: 3000,
@@ -85,15 +89,17 @@ class CloudflareTunnelStrategy {
 class ProductionEnvironmentStrategy {
     config;
     constructor(productionUrl){
-        const prodUrl = productionUrl || process.env.NEXT_PUBLIC_API_URL || "";
+        const prodUrl = productionUrl || process.env.NEXT_PUBLIC_API_URL || "https://talkfoodsoftwerk.net";
+        // Garantir que sempre temos uma URL válida
+        const validUrl = prodUrl || "https://talkfoodsoftwerk.net";
         this.config = {
             type: "production",
             frontendPort: 443,
             backendPort: 443,
             protocol: "https",
-            hostname: this.extractHostname(prodUrl),
+            hostname: this.extractHostname(validUrl),
             apiPath: "",
-            baseUrl: prodUrl
+            baseUrl: validUrl
         };
     }
     extractHostname(url) {
@@ -117,27 +123,34 @@ class ProductionEnvironmentStrategy {
 class EnvironmentStrategyFactory {
     static create() {
         const envType = process.env.NEXT_PUBLIC_ENVIRONMENT_TYPE || ("TURBOPACK compile-time value", "development") || "local";
+        const isProduction = envType.toLowerCase() === "production" || ("TURBOPACK compile-time value", "development") === "production";
         // Prioridade 1: Se NEXT_PUBLIC_API_URL está configurado, usar ProductionStrategy
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-        if (apiUrl && apiUrl.startsWith("https://")) {
-            return new ProductionEnvironmentStrategy(apiUrl);
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL?.trim();
+        if (apiUrl && apiUrl !== "") {
+            // Se começa com https, usar ProductionStrategy
+            if (apiUrl.startsWith("https://")) {
+                return new ProductionEnvironmentStrategy(apiUrl);
+            }
+            // Se começa com http, também usar ProductionStrategy (pode ser desenvolvimento)
+            if (apiUrl.startsWith("http://")) {
+                return new ProductionEnvironmentStrategy(apiUrl);
+            }
         }
         // Prioridade 2: Verificar se há URL do Cloudflare Tunnel
-        const tunnelUrl = process.env.NEXT_PUBLIC_CLOUDFLARE_TUNNEL_URL;
-        const useTunnel = tunnelUrl || envType.toLowerCase() === "cloudflare" || envType.toLowerCase() === "production" && !apiUrl; // Produção geralmente usa tunnel
-        if (useTunnel) {
+        const tunnelUrl = process.env.NEXT_PUBLIC_CLOUDFLARE_TUNNEL_URL?.trim();
+        if (tunnelUrl && tunnelUrl !== "") {
             return new CloudflareTunnelStrategy(tunnelUrl);
         }
-        // Prioridade 3: Se NEXT_PUBLIC_API_URL está configurado (mesmo que não seja https)
-        if (apiUrl) {
-            return new ProductionEnvironmentStrategy(apiUrl);
+        // Prioridade 3: Se estiver em produção, usar Cloudflare Tunnel Strategy com URL padrão
+        if (isProduction) {
+            return new CloudflareTunnelStrategy(); // Usa https://talkfoodsoftwerk.net como padrão
         }
-        // Verificar tipo de ambiente explícito
+        // Prioridade 4: Verificar tipo de ambiente explícito
         switch(envType.toLowerCase()){
             case "cloudflare":
                 return new CloudflareTunnelStrategy();
             case "production":
-                return new ProductionEnvironmentStrategy();
+                return new CloudflareTunnelStrategy(); // Usa https://talkfoodsoftwerk.net
             case "local":
             case "development":
             default:
@@ -163,7 +176,13 @@ class EnvironmentStrategyFactory {
     static instance;
     strategy;
     constructor(){
-        this.strategy = EnvironmentStrategyFactory.create();
+        try {
+            this.strategy = EnvironmentStrategyFactory.create();
+        } catch (error) {
+            // Fallback para CloudflareTunnelStrategy em caso de erro
+            console.error("Erro ao criar estratégia de ambiente, usando fallback:", error);
+            this.strategy = new CloudflareTunnelStrategy();
+        }
     }
     static getInstance() {
         if (!EnvironmentConfigManager.instance) {
@@ -178,10 +197,27 @@ class EnvironmentStrategyFactory {
         this.strategy = strategy;
     }
     getConfig() {
-        return this.strategy.getConfig();
+        try {
+            return this.strategy.getConfig();
+        } catch (error) {
+            // Fallback seguro
+            console.error("Erro ao obter configuração, usando fallback:", error);
+            return new CloudflareTunnelStrategy().getConfig();
+        }
     }
     getApiBaseUrl() {
-        return this.strategy.getApiBaseUrl();
+        try {
+            const url = this.strategy.getApiBaseUrl();
+            // Garantir que sempre retorna uma URL válida
+            if (!url || url.trim() === "") {
+                return "https://talkfoodsoftwerk.net";
+            }
+            return url;
+        } catch (error) {
+            // Fallback seguro
+            console.error("Erro ao obter URL da API, usando fallback:", error);
+            return "https://talkfoodsoftwerk.net";
+        }
     }
 }
 const environmentConfig = EnvironmentConfigManager.getInstance();
@@ -455,6 +491,8 @@ async function apiClient(endpoint, options = {}) {
  * API Client refatorado usando Strategy Pattern e Factory Pattern
  * Mantém compatibilidade com código legado através do Adapter Pattern
  */ __turbopack_context__.s([
+    "apiClient",
+    ()=>apiClient,
     "getApiUrl",
     ()=>getApiUrl
 ]);
@@ -486,7 +524,6 @@ __turbopack_context__.s([
     ()=>setToken
 ]);
 var __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$api$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__$3c$locals$3e$__ = __turbopack_context__.i("[project]/src/lib/api.ts [app-rsc] (ecmascript) <locals>");
-var __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$core$2f$http$2f$api$2d$adapter$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/src/core/http/api-adapter.ts [app-rsc] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$headers$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/headers.js [app-rsc] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$api$2f$navigation$2e$react$2d$server$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__$3c$locals$3e$__ = __turbopack_context__.i("[project]/node_modules/next/dist/api/navigation.react-server.js [app-rsc] (ecmascript) <locals>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$client$2f$components$2f$navigation$2e$react$2d$server$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/client/components/navigation.react-server.js [app-rsc] (ecmascript)");
@@ -494,6 +531,26 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist
 ;
 ;
 const COOKIE_NAME = "token_pizzaria";
+/**
+ * Normaliza o role do usuário (número ou string) para string uppercase
+ * Suporta:
+ * - Número: 1 = ADMIN, outros = STAFF
+ * - String: "admin", "Admin", "ADMIN" → "ADMIN"
+ * 
+ * @param role - Role do usuário (número ou string)
+ * @returns Role normalizado como string uppercase
+ */ function normalizeRole(role) {
+    // Se for número
+    if (typeof role === "number") {
+        return role === 1 ? "ADMIN" : "STAFF";
+    }
+    // Se for string, retornar em uppercase
+    if (typeof role === "string") {
+        return role.toUpperCase();
+    }
+    // Fallback seguro (nunca deve chegar aqui, mas garante que não quebra)
+    return "STAFF";
+}
 async function getToken() {
     const cookieStore = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$headers$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["cookies"])();
     return cookieStore.get(COOKIE_NAME)?.value;
@@ -518,7 +575,7 @@ async function getUser() {
         if (!token) {
             return null;
         }
-        const user = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$core$2f$http$2f$api$2d$adapter$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["apiClient"])("/me", {
+        const user = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$api$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__$3c$locals$3e$__["apiClient"])("/api/auth/me", {
             token: token
         });
         return user;
@@ -532,7 +589,9 @@ async function requiredAdmin() {
     if (!user) {
         (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$client$2f$components$2f$navigation$2e$react$2d$server$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["redirect"])("/login");
     }
-    if (user.role !== "ADMIN") {
+    // Normalizar role para garantir compatibilidade com número ou string
+    const normalizedRole = normalizeRole(user.role);
+    if (normalizedRole !== "ADMIN") {
         (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$client$2f$components$2f$navigation$2e$react$2d$server$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["redirect"])("/access-denied");
     }
     return user;
@@ -551,7 +610,6 @@ async function requiredAdmin() {
 ]);
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/build/webpack/loaders/next-flight-loader/server-reference.js [app-rsc] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$api$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__$3c$locals$3e$__ = __turbopack_context__.i("[project]/src/lib/api.ts [app-rsc] (ecmascript) <locals>");
-var __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$core$2f$http$2f$api$2d$adapter$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/src/core/http/api-adapter.ts [app-rsc] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$auth$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/src/lib/auth.ts [app-rsc] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$api$2f$navigation$2e$react$2d$server$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__$3c$locals$3e$__ = __turbopack_context__.i("[project]/node_modules/next/dist/api/navigation.react-server.js [app-rsc] (ecmascript) <locals>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$client$2f$components$2f$navigation$2e$react$2d$server$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/client/components/navigation.react-server.js [app-rsc] (ecmascript)");
@@ -570,7 +628,7 @@ async function registerAction(prevState, formData) {
             email: email,
             password: password
         };
-        await (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$core$2f$http$2f$api$2d$adapter$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["apiClient"])("/users", {
+        await (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$api$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__$3c$locals$3e$__["apiClient"])("/api/auth/users", {
             method: "POST",
             body: JSON.stringify(data)
         });
@@ -600,7 +658,7 @@ async function loginAction(prevState, formData) {
             email: email,
             password: password
         };
-        const response = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$core$2f$http$2f$api$2d$adapter$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["apiClient"])("/session", {
+        const response = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$api$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__$3c$locals$3e$__["apiClient"])("/api/auth/session", {
             method: "POST",
             body: JSON.stringify(data)
         });

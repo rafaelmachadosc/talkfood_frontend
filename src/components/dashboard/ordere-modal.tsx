@@ -55,7 +55,7 @@ export function OrderModal({
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
   const [adicionaisSearch, setAdicionaisSearch] = useState("");
   const [selectedAdicionais, setSelectedAdicionais] = useState<Set<string>>(new Set());
-  const [quantity, setQuantity] = useState(1);
+  const [productQuantities, setProductQuantities] = useState<Record<string, number>>({});
   const [comandaValue, setComandaValue] = useState("");
   const [receivedAmount, setReceivedAmount] = useState(""); // Valor formatado (R$ 15,00)
   const [paymentMethod, setPaymentMethod] = useState<string>("DINHEIRO");
@@ -206,7 +206,7 @@ export function OrderModal({
     setSelectedProducts(new Set());
     setAdicionaisSearch("");
     setSelectedAdicionais(new Set());
-    setQuantity(1);
+    setProductQuantities({});
     
     // Limpar estados do formulário de receber
     setShowReceive(false);
@@ -392,6 +392,38 @@ export function OrderModal({
       }, 0);
   };
 
+  // Atualiza quantidade agrupada de um produto diretamente na ordem (usado na tela de recebimento)
+  const handleUpdateGroupedProductQuantity = async (
+    productId: string,
+    delta: number,
+    currentQuantity: number
+  ) => {
+    if (!orderId || !order) return;
+    if (delta < 0 && currentQuantity <= 0) return;
+
+    try {
+      const api = getApiAdapter();
+      await api.post(
+        "/api/order/update-item-quantity",
+        {
+          order_id: orderId,
+          product_id: productId,
+          delta,
+        },
+        { token }
+      );
+
+      await fetchOrder(false);
+      orderEventHelpers.notifyOrderUpdated();
+    } catch (error) {
+      console.error("Erro ao atualizar quantidade do item:", error);
+      alert(
+        "Não foi possível atualizar a quantidade deste item. " +
+          "Verifique se o endpoint POST /api/order/update-item-quantity está implementado no backend."
+      );
+    }
+  };
+
   const handleSendOrder = async () => {
     if (!orderId || !order) return;
 
@@ -527,7 +559,10 @@ export function OrderModal({
       const items: Array<{ product_id: string; amount: number }> = [];
       
       selectedProducts.forEach(productId => {
-        items.push({ product_id: productId, amount: quantity });
+        const amount = productQuantities[productId] ?? 1;
+        if (amount > 0) {
+          items.push({ product_id: productId, amount });
+        }
       });
       
       selectedAdicionais.forEach(productId => {
@@ -558,7 +593,7 @@ export function OrderModal({
       setSelectedProducts(new Set());
       setAdicionaisSearch("");
       setSelectedAdicionais(new Set());
-      setQuantity(1);
+      setProductQuantities({});
       
       orderEventHelpers.notifyOrderUpdated();
     } catch (error) {
@@ -715,6 +750,8 @@ export function OrderModal({
         orderEventHelpers.notifyOrderUpdated();
       } else {
         await fetchOrder(false);
+        // Após receber totalmente o pedido, imprimir automaticamente o cupom
+        await handlePrintReceipt();
       }
 
       setShowReceive(false);
@@ -981,14 +1018,51 @@ export function OrderModal({
                                 </>
                               )}
                             </div>
-                            <div className="text-right ml-4">
-                              <p className="text-sm text-white/70 mb-1">
+                            <div className="text-right ml-4 space-y-2">
+                              <p className="text-sm text-white/70">
                                 Quantidade: {groupedItem.totalAmount}
                               </p>
                               {!isKitchen && (
-                                <p className="font-normal text-lg text-white">
-                                  Subtotal: {formatPrice(subtotal)}
-                                </p>
+                                <>
+                                  <p className="font-normal text-lg text-white">
+                                    Subtotal: {formatPrice(subtotal)}
+                                  </p>
+                                  {!order.status && (
+                                    <div className="flex items-center justify-end gap-2">
+                                      <Button
+                                        type="button"
+                                        size="icon"
+                                        variant="outline"
+                                        className="h-7 w-7 border-app-border text-white"
+                                        onClick={() =>
+                                          handleUpdateGroupedProductQuantity(
+                                            groupedItem.product.id,
+                                            -1,
+                                            groupedItem.totalAmount
+                                          )
+                                        }
+                                        disabled={groupedItem.totalAmount <= 0}
+                                      >
+                                        <Minus className="w-3 h-3" />
+                                      </Button>
+                                      <Button
+                                        type="button"
+                                        size="icon"
+                                        variant="outline"
+                                        className="h-7 w-7 border-app-border text-white"
+                                        onClick={() =>
+                                          handleUpdateGroupedProductQuantity(
+                                            groupedItem.product.id,
+                                            1,
+                                            groupedItem.totalAmount
+                                          )
+                                        }
+                                      >
+                                        <Plus className="w-3 h-3" />
+                                      </Button>
+                                    </div>
+                                  )}
+                                </>
                               )}
                             </div>
                           </div>
@@ -1307,21 +1381,56 @@ export function OrderModal({
                 {selectedProducts.size > 0 && (
                   <div className="mt-2 flex flex-wrap gap-2">
                     {Array.from(selectedProducts).map((productId) => {
-                      const product = products.find(p => p.id === productId);
+                      const product = products.find((p) => p.id === productId);
                       if (!product) return null;
+                      const quantity = productQuantities[productId] ?? 1;
                       return (
                         <span
                           key={productId}
-                          className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-800 rounded text-sm"
+                          className="inline-flex items-center gap-2 px-2 py-1 bg-green-100 text-green-800 rounded text-sm"
                         >
                           {product.name}
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setProductQuantities((prev) => {
+                                  const current = prev[productId] ?? 1;
+                                  const next = Math.max(1, current - 1);
+                                  return { ...prev, [productId]: next };
+                                });
+                              }}
+                              className="flex h-6 w-6 items-center justify-center rounded border border-green-300 bg-white text-green-800"
+                            >
+                              <Minus className="w-3 h-3" />
+                            </button>
+                            <span className="min-w-[1.5rem] text-center">{quantity}</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setProductQuantities((prev) => {
+                                  const current = prev[productId] ?? 1;
+                                  return { ...prev, [productId]: current + 1 };
+                                });
+                              }}
+                              className="flex h-6 w-6 items-center justify-center rounded border border-green-300 bg-white text-green-800"
+                            >
+                              <Plus className="w-3 h-3" />
+                            </button>
+                          </div>
                           <button
+                            type="button"
                             onClick={() => {
                               const newSelected = new Set(selectedProducts);
                               newSelected.delete(productId);
                               setSelectedProducts(newSelected);
+                              setProductQuantities((prev) => {
+                                const clone = { ...prev };
+                                delete clone[productId];
+                                return clone;
+                              });
                             }}
-                            className="hover:text-green-900"
+                            className="ml-1 hover:text-green-900"
                           >
                             ×
                           </button>
@@ -1330,33 +1439,6 @@ export function OrderModal({
                     })}
                   </div>
                 )}
-              </div>
-
-              <div>
-                <Label className="mb-2">Quantidade para produtos selecionados</Label>
-                <div className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="border-app-border text-black"
-                    onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                  >
-                    <Minus className="w-4 h-4" />
-                  </Button>
-                  <Input
-                    value={quantity}
-                    readOnly
-                    className="w-16 text-center border-app-border bg-white text-black"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="border-app-border text-black"
-                    onClick={() => setQuantity((q) => q + 1)}
-                  >
-                    <Plus className="w-4 h-4" />
-                  </Button>
-                </div>
               </div>
 
               <div ref={adicionaisSearchRef}>
@@ -1460,11 +1542,12 @@ export function OrderModal({
                     <span className="text-xl font-normal text-brand-primary">
                       {formatPrice(
                         Array.from(selectedProducts).reduce((sum, id) => {
-                          const product = products.find(p => p.id === id);
+                          const product = products.find((p) => p.id === id);
+                          const quantity = productQuantities[id] ?? 1;
                           return sum + (product ? product.price * quantity : 0);
                         }, 0) +
                         Array.from(selectedAdicionais).reduce((sum, id) => {
-                          const product = products.find(p => p.id === id);
+                          const product = products.find((p) => p.id === id);
                           return sum + (product ? product.price : 0);
                         }, 0)
                       )}
@@ -1474,20 +1557,20 @@ export function OrderModal({
               )}
 
               <div className="flex gap-3 pt-2">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setShowAddItem(false);
-                    setProductSearch("");
-                    setSelectedProducts(new Set());
-                    setAdicionaisSearch("");
-                    setSelectedAdicionais(new Set());
-                    setQuantity(1);
-                  }}
-                  className="flex-1 border-app-border hover:bg-transparent text-black"
-                >
-                  Cancelar
-                </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowAddItem(false);
+                  setProductSearch("");
+                  setSelectedProducts(new Set());
+                  setAdicionaisSearch("");
+                  setSelectedAdicionais(new Set());
+                  setProductQuantities({});
+                }}
+                className="flex-1 border-app-border hover:bg-transparent text-black"
+              >
+                Cancelar
+              </Button>
                 <Button
                   onClick={handleAddItems}
                   disabled={selectedProducts.size === 0 && selectedAdicionais.size === 0}
@@ -1702,14 +1785,51 @@ export function OrderModal({
                               </>
                             )}
                           </div>
-                          <div className="text-right ml-4">
-                            <p className="text-sm text-gray-600 mb-1">
+                          <div className="text-right ml-4 space-y-2">
+                            <p className="text-sm text-gray-600">
                               Quantidade: {groupedItem.totalAmount}
                             </p>
                             {!isKitchen && (
-                              <p className="font-normal text-lg">
-                                Subtotal: {formatPrice(subtotal)}
-                              </p>
+                              <>
+                                <p className="font-normal text-lg">
+                                  Subtotal: {formatPrice(subtotal)}
+                                </p>
+                                {!order.status && (
+                                  <div className="flex items-center justify-end gap-2">
+                                    <Button
+                                      type="button"
+                                      size="icon"
+                                      variant="outline"
+                                      className="h-7 w-7 border-app-border text-gray-700"
+                                      onClick={() =>
+                                        handleUpdateGroupedProductQuantity(
+                                          groupedItem.product.id,
+                                          -1,
+                                          groupedItem.totalAmount
+                                        )
+                                      }
+                                      disabled={groupedItem.totalAmount <= 0}
+                                    >
+                                      <Minus className="w-3 h-3" />
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      size="icon"
+                                      variant="outline"
+                                      className="h-7 w-7 border-app-border text-gray-700"
+                                      onClick={() =>
+                                        handleUpdateGroupedProductQuantity(
+                                          groupedItem.product.id,
+                                          1,
+                                          groupedItem.totalAmount
+                                        )
+                                      }
+                                    >
+                                      <Plus className="w-3 h-3" />
+                                    </Button>
+                                  </div>
+                                )}
+                              </>
                             )}
                           </div>
                         </div>
@@ -1929,21 +2049,56 @@ export function OrderModal({
               {selectedProducts.size > 0 && (
                 <div className="mt-2 flex flex-wrap gap-2">
                   {Array.from(selectedProducts).map((productId) => {
-                    const product = products.find(p => p.id === productId);
+                    const product = products.find((p) => p.id === productId);
                     if (!product) return null;
+                    const quantity = productQuantities[productId] ?? 1;
                     return (
                       <span
                         key={productId}
-                        className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-800 rounded text-sm"
+                        className="inline-flex items-center gap-2 px-2 py-1 bg-green-100 text-green-800 rounded text-sm"
                       >
                         {product.name}
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setProductQuantities((prev) => {
+                                const current = prev[productId] ?? 1;
+                                const next = Math.max(1, current - 1);
+                                return { ...prev, [productId]: next };
+                              });
+                            }}
+                            className="flex h-6 w-6 items-center justify-center rounded border border-green-300 bg-white text-green-800"
+                          >
+                            <Minus className="w-3 h-3" />
+                          </button>
+                          <span className="min-w-[1.5rem] text-center">{quantity}</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setProductQuantities((prev) => {
+                                const current = prev[productId] ?? 1;
+                                return { ...prev, [productId]: current + 1 };
+                              });
+                            }}
+                            className="flex h-6 w-6 items-center justify-center rounded border border-green-300 bg-white text-green-800"
+                          >
+                            <Plus className="w-3 h-3" />
+                          </button>
+                        </div>
                         <button
+                          type="button"
                           onClick={() => {
                             const newSelected = new Set(selectedProducts);
                             newSelected.delete(productId);
                             setSelectedProducts(newSelected);
+                            setProductQuantities((prev) => {
+                              const clone = { ...prev };
+                              delete clone[productId];
+                              return clone;
+                            });
                           }}
-                          className="hover:text-green-900"
+                          className="ml-1 hover:text-green-900"
                         >
                           ×
                         </button>
@@ -1952,40 +2107,6 @@ export function OrderModal({
                   })}
                 </div>
               )}
-            </div>
-
-            <div>
-              <Label htmlFor="quantity" className="mb-2">
-                Quantidade para produtos selecionados
-              </Label>
-              <div className="flex items-center gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  className="border-app-border"
-                >
-                  <Minus className="w-4 h-4" />
-                </Button>
-                <Input
-                  id="quantity"
-                  type="number"
-                  min="1"
-                  value={quantity}
-                  onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                  className="border-app-border bg-white text-black text-center w-20"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setQuantity(quantity + 1)}
-                  className="border-app-border"
-                >
-                  <Plus className="w-4 h-4" />
-                </Button>
-              </div>
             </div>
 
             <div>
@@ -2126,7 +2247,7 @@ export function OrderModal({
                   setSelectedProducts(new Set());
                   setAdicionaisSearch("");
                   setSelectedAdicionais(new Set());
-                  setQuantity(1);
+                  setProductQuantities({});
                 }}
                 className="flex-1 border-app-border hover:bg-transparent text-black"
               >

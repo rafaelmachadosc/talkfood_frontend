@@ -1,9 +1,15 @@
-[00:00:03.375] Server  LOG      ✓ Ready in 2.3s
-[00:01:00.159] Server  LOG      ○ Compiling / ...
-[00:01:07.051] Server  LOG      ○ Compiling /login ...
-[00:01:13.614] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:01:15.389] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:01:17.467] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:02:07.785] Server  LOG     [HTTP] POST http://localhost:8081/session
-[00:02:08.365] Server  ERROR   Erro no login: Error: Não foi possível conectar ao servidor em http://localhost:8081. Verifique se o backend está rodando e acessível.
-[01:58:46.693] Server  LOG      ✓ Compiled in 261ms
+[00:00:03.331] Server  LOG      ✓ Ready in 2.5s
+[00:00:06.381] Server  LOG      ○ Compiling / ...
+[00:00:11.654] Server  LOG      ○ Compiling /login ...
+[00:00:15.175] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:00:21.863] Server  LOG     [HTTP] POST http://localhost:8081/api/auth/session
+[00:00:21.873] Server  ERROR   C:\Users\Rafael Machado\Downloads\Frontend\.next\dev\server\chunks\ssr\_38a957f7._.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[00:00:21.941] Server  ERROR   C:\Users\Rafael Machado\Downloads\Frontend\node_modules\next\dist\compiled\next-server\app-page-turbo.runtime.dev.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[00:00:21.959] Server  ERROR   C:\Users\Rafael Machado\Downloads\Frontend\.next\dev\server\chunks\ssr\node_modules_next_dist_92d1e3ed._.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[00:00:21.966] Server  ERROR   C:\Users\Rafael Machado\Downloads\Frontend\node_modules\next\dist\server\base-server.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[00:00:21.972] Server  ERROR   C:\Users\Rafael Machado\Downloads\Frontend\node_modules\next\dist\server\next-server.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[00:00:21.974] Server  ERROR   C:\Users\Rafael Machado\Downloads\Frontend\node_modules\next\dist\server\dev\next-dev-server.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[00:00:21.975] Server  ERROR   C:\Users\Rafael Machado\Downloads\Frontend\node_modules\next\dist\trace\trace.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[00:00:21.977] Server  ERROR   C:\Users\Rafael Machado\Downloads\Frontend\node_modules\next\dist\server\lib\router-server.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[00:00:21.979] Server  ERROR   C:\Users\Rafael Machado\Downloads\Frontend\node_modules\next\dist\server\lib\start-server.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[00:00:21.982] Server  ERROR   Erro no login: Error: Não foi possível conectar ao servidor em http://localhost:8081. Verifique se o backend está rodando e acessível.

@@ -39,6 +39,34 @@ interface CaixaStatus {
   totalOrders: number;
 }
 
+interface CaixaSaleSummary {
+  id: string;
+  receivedAt: string;
+  table?: number | null;
+  comanda?: string | null;
+  totalCents: number;
+  paymentMethod: string;
+  status: string;
+}
+
+interface CaixaSaleItem {
+  id: string;
+  productName: string;
+  quantity: number;
+  unitPriceCents: number;
+}
+
+interface CaixaSaleDetail {
+  id: string;
+  receivedAt: string;
+  table?: number | null;
+  comanda?: string | null;
+  totalCents: number;
+  paymentMethod: string;
+  status: string;
+  items: CaixaSaleItem[];
+}
+
 export function CaixaPage({ token }: CaixaPageProps) {
   const [loading, setLoading] = useState(true);
   const [caixaStatus, setCaixaStatus] = useState<CaixaStatus | null>(null);
@@ -48,6 +76,12 @@ export function CaixaPage({ token }: CaixaPageProps) {
   const [initialAmountRaw, setInitialAmountRaw] = useState(""); // Valor formatado (R$ 1.500,00)
   const [receivedAmountRaw, setReceivedAmountRaw] = useState(""); // Apenas dígitos
   const [changeAmount, setChangeAmount] = useState("");
+  const [selectedDate, setSelectedDate] = useState<string>(() =>
+    new Date().toISOString().slice(0, 10)
+  );
+  const [salesLoading, setSalesLoading] = useState(false);
+  const [sales, setSales] = useState<CaixaSaleSummary[]>([]);
+  const [selectedSale, setSelectedSale] = useState<CaixaSaleDetail | null>(null);
 
   // Função para formatar valor monetário como no campo de preço do produto (R$ 1.500,00)
   function formatToBrl(value: string): string {
@@ -142,6 +176,70 @@ export function CaixaPage({ token }: CaixaPageProps) {
       setLoading(false);
     }
   };
+
+  const normalizeSalesList = (data: unknown): CaixaSaleSummary[] => {
+    if (Array.isArray(data)) return data as CaixaSaleSummary[];
+    const maybeData = (data as { data?: unknown })?.data;
+    if (Array.isArray(maybeData)) return maybeData as CaixaSaleSummary[];
+    return [];
+  };
+
+  const loadSales = async (date: string) => {
+    try {
+      setSalesLoading(true);
+      setSelectedSale(null);
+      const response = await apiClient<CaixaSaleSummary[] | { data?: CaixaSaleSummary[] }>(
+        `/api/caixa/sales?date=${date}`,
+        {
+          method: "GET",
+          token,
+          silent404: true,
+        }
+      );
+
+      const list = normalizeSalesList(response);
+      setSales(list);
+      setSalesLoading(false);
+    } catch (error) {
+      console.error("Erro ao carregar vendas do caixa:", error);
+      setSales([]);
+      setSelectedSale(null);
+      setSalesLoading(false);
+
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
+      if (message.includes("404") || message.includes("Not Found")) {
+        alert(
+          "O endpoint GET /api/caixa/sales?date=YYYY-MM-DD ainda não está implementado no backend. " +
+            "Implemente este endpoint para listar as vendas do dia."
+        );
+      }
+    }
+  };
+
+  const loadSaleDetail = async (saleId: string) => {
+    try {
+      const detail = await apiClient<CaixaSaleDetail>(`/api/caixa/sales/${saleId}`, {
+        method: "GET",
+        token,
+        silent404: true,
+      });
+      setSelectedSale(detail);
+    } catch (error) {
+      console.error("Erro ao carregar detalhes da venda:", error);
+      setSelectedSale(null);
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
+      if (message.includes("404") || message.includes("Not Found")) {
+        alert(
+          "O endpoint GET /api/caixa/sales/:id ainda não está implementado no backend. " +
+            "Implemente este endpoint para retornar os itens vendidos."
+        );
+      }
+    }
+  };
+
+  useEffect(() => {
+    loadSales(selectedDate);
+  }, [selectedDate, token]);
 
   const handleOpenCaixa = async () => {
     try {
@@ -252,7 +350,19 @@ export function CaixaPage({ token }: CaixaPageProps) {
           <h1 className="text-2xl sm:text-3xl font-normal text-black">Caixa</h1>
           <p className="text-sm sm:text-base mt-1">Gerencie abertura, fechamento e troco</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
+          <div className="flex flex-col">
+            <Label htmlFor="caixa-date" className="text-xs sm:text-sm text-gray-600 mb-1">
+              Data das vendas
+            </Label>
+            <Input
+              id="caixa-date"
+              type="date"
+              className="w-full sm:w-auto border-app-border"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+            />
+          </div>
           {!caixaStatus?.isOpen ? (
             <Button
               onClick={() => {
@@ -349,6 +459,165 @@ export function CaixaPage({ token }: CaixaPageProps) {
             <p className="text-xs text-gray-600 mt-1">
               {caixaStatus?.totalOrders || 0} pedidos
             </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Grid de vendas do dia */}
+      <div className="mt-4 space-y-4">
+        <Card className="bg-app-card border-app-border tech-shadow">
+          <CardHeader>
+            <CardTitle className="text-base sm:text-lg font-normal text-gray-700">
+              Vendas do dia
+            </CardTitle>
+            <CardDescription className="text-xs sm:text-sm text-gray-500">
+              Clique em uma venda para ver os itens detalhados.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {salesLoading ? (
+              <p className="text-sm text-gray-600">Carregando vendas...</p>
+            ) : sales.length === 0 ? (
+              <p className="text-sm text-gray-600">
+                Nenhuma venda encontrada para a data selecionada.
+              </p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-app-border bg-gray-50">
+                      <th className="px-3 py-2 text-left font-normal text-gray-600">Hora</th>
+                      <th className="px-3 py-2 text-left font-normal text-gray-600">
+                        Mesa / Comanda
+                      </th>
+                      <th className="px-3 py-2 text-right font-normal text-gray-600">Total</th>
+                      <th className="px-3 py-2 text-left font-normal text-gray-600">Pagamento</th>
+                      <th className="px-3 py-2 text-left font-normal text-gray-600">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sales.map((sale) => (
+                      <tr
+                        key={sale.id}
+                        className="border-b border-app-border hover:bg-gray-100 cursor-pointer"
+                        onClick={() => loadSaleDetail(sale.id)}
+                      >
+                        <td className="px-3 py-2">
+                          {sale.receivedAt
+                            ? new Date(sale.receivedAt).toLocaleTimeString("pt-BR", {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })
+                            : "-"}
+                        </td>
+                        <td className="px-3 py-2">
+                          {sale.table
+                            ? `Mesa ${sale.table}${
+                                sale.comanda ? ` - ${String(sale.comanda).trim()}` : ""
+                              }`
+                            : sale.comanda
+                            ? String(sale.comanda).trim()
+                            : "-"}
+                        </td>
+                        <td className="px-3 py-2 text-right">
+                          {formatPrice(sale.totalCents || 0)}
+                        </td>
+                        <td className="px-3 py-2">
+                          {sale.paymentMethod || "-"}
+                        </td>
+                        <td className="px-3 py-2">
+                          {sale.status || "-"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="bg-app-card border-app-border tech-shadow">
+          <CardHeader>
+            <CardTitle className="text-base sm:text-lg font-normal text-gray-700">
+              Detalhe da venda selecionada
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {!selectedSale ? (
+              <p className="text-sm text-gray-600">
+                Selecione uma venda na lista acima para ver os itens vendidos.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                <div className="text-sm text-gray-700">
+                  <p>
+                    <span className="font-normal">Data/Hora: </span>
+                    {new Date(selectedSale.receivedAt).toLocaleString("pt-BR")}
+                  </p>
+                  <p>
+                    <span className="font-normal">Mesa / Comanda: </span>
+                    {selectedSale.table
+                      ? `Mesa ${selectedSale.table}${
+                          selectedSale.comanda
+                            ? ` - ${String(selectedSale.comanda).trim()}`
+                            : ""
+                        }`
+                      : selectedSale.comanda
+                      ? String(selectedSale.comanda).trim()
+                      : "-"}
+                  </p>
+                  <p>
+                    <span className="font-normal">Pagamento: </span>
+                    {selectedSale.paymentMethod}
+                  </p>
+                </div>
+
+                <div className="border border-app-border rounded-lg overflow-hidden">
+                  <table className="min-w-full text-sm">
+                    <thead className="bg-gray-50">
+                      <tr className="border-b border-app-border">
+                        <th className="px-3 py-2 text-left font-normal text-gray-600">
+                          Produto
+                        </th>
+                        <th className="px-3 py-2 text-center font-normal text-gray-600">
+                          Qtd
+                        </th>
+                        <th className="px-3 py-2 text-right font-normal text-gray-600">
+                          Unitário
+                        </th>
+                        <th className="px-3 py-2 text-right font-normal text-gray-600">
+                          Subtotal
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedSale.items.map((item) => (
+                        <tr key={item.id} className="border-b border-app-border">
+                          <td className="px-3 py-2">{item.productName}</td>
+                          <td className="px-3 py-2 text-center">{item.quantity}</td>
+                          <td className="px-3 py-2 text-right">
+                            {formatPrice(item.unitPriceCents)}
+                          </td>
+                          <td className="px-3 py-2 text-right">
+                            {formatPrice(item.unitPriceCents * item.quantity)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="flex justify-end">
+                  <span className="text-base sm:text-lg font-normal">
+                    Total:&nbsp;
+                    <span className="text-brand-primary">
+                      {formatPrice(selectedSale.totalCents)}
+                    </span>
+                  </span>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
