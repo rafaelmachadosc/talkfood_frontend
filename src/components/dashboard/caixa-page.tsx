@@ -237,6 +237,48 @@ export function CaixaPage({ token }: CaixaPageProps) {
     }
   };
 
+  const printRawData = (rawData: string) => {
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) {
+      alert("Não foi possível abrir a janela de impressão.");
+      return;
+    }
+    printWindow.document.write(
+      `<html><head><title>Comprovante</title></head><body><pre style="font-family: monospace; font-size: 12px;">${rawData}</pre><script>window.print();</script></body></html>`
+    );
+    printWindow.document.close();
+  };
+
+  const handlePrintReceipt = async (saleId: string) => {
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL;
+      if (!baseUrl) {
+        alert("API não configurada.");
+        return;
+      }
+      const response = await fetch(`${baseUrl}/api/print/receipt`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          orderId: saleId,
+          receiptType: "ORDER",
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data?.success || !data?.rawData) {
+        const message = data?.error || "Falha ao gerar comprovante.";
+        alert(message);
+        return;
+      }
+      printRawData(data.rawData);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Erro ao imprimir comprovante.");
+    }
+  };
+
   useEffect(() => {
     loadSales(selectedDate);
   }, [selectedDate, token]);
@@ -468,10 +510,10 @@ export function CaixaPage({ token }: CaixaPageProps) {
         <Card className="bg-app-card border-app-border tech-shadow">
           <CardHeader>
             <CardTitle className="text-base sm:text-lg font-normal text-gray-700">
-              Vendas do dia
+              Vendas
             </CardTitle>
             <CardDescription className="text-xs sm:text-sm text-gray-500">
-              Clique em uma venda para ver os itens detalhados.
+              Clique na venda para abrir/fechar os detalhes.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -493,129 +535,146 @@ export function CaixaPage({ token }: CaixaPageProps) {
                       <th className="px-3 py-2 text-right font-normal text-gray-600">Total</th>
                       <th className="px-3 py-2 text-left font-normal text-gray-600">Pagamento</th>
                       <th className="px-3 py-2 text-left font-normal text-gray-600">Status</th>
+                      <th className="px-3 py-2 text-right font-normal text-gray-600">Comprovante</th>
                     </tr>
                   </thead>
                   <tbody>
                     {sales.map((sale) => (
-                      <tr
-                        key={sale.id}
-                        className="border-b border-app-border hover:bg-gray-100 cursor-pointer"
-                        onClick={() => loadSaleDetail(sale.id)}
-                      >
-                        <td className="px-3 py-2">
-                          {sale.receivedAt
-                            ? new Date(sale.receivedAt).toLocaleTimeString("pt-BR", {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })
-                            : "-"}
-                        </td>
-                        <td className="px-3 py-2">
-                          {sale.table
-                            ? `Mesa ${sale.table}${
-                                sale.comanda ? ` - ${String(sale.comanda).trim()}` : ""
-                              }`
-                            : sale.comanda
-                            ? String(sale.comanda).trim()
-                            : "-"}
-                        </td>
-                        <td className="px-3 py-2 text-right">
-                          {formatPrice(sale.totalCents || 0)}
-                        </td>
-                        <td className="px-3 py-2">
-                          {sale.paymentMethod || "-"}
-                        </td>
-                        <td className="px-3 py-2">
-                          {sale.status || "-"}
-                        </td>
-                      </tr>
+                      <>
+                        <tr
+                          key={sale.id}
+                          className={`border-b border-app-border hover:bg-gray-100 cursor-pointer ${
+                            selectedSale?.id === sale.id ? "bg-brand-primary/10" : ""
+                          }`}
+                          onClick={() => {
+                            if (selectedSale?.id === sale.id) {
+                              setSelectedSale(null);
+                              return;
+                            }
+                            loadSaleDetail(sale.id);
+                          }}
+                        >
+                          <td className="px-3 py-2">
+                            {sale.receivedAt
+                              ? new Date(sale.receivedAt).toLocaleTimeString("pt-BR", {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })
+                              : "-"}
+                          </td>
+                          <td className="px-3 py-2">
+                            {sale.table
+                              ? `Mesa ${sale.table}${
+                                  sale.comanda ? ` - ${String(sale.comanda).trim()}` : ""
+                                }`
+                              : sale.comanda
+                              ? String(sale.comanda).trim()
+                              : "-"}
+                          </td>
+                          <td className="px-3 py-2 text-right">
+                            {formatPrice(sale.totalCents || 0)}
+                          </td>
+                          <td className="px-3 py-2">
+                            {sale.paymentMethod || "-"}
+                          </td>
+                          <td className="px-3 py-2">
+                            {sale.status || "-"}
+                          </td>
+                          <td className="px-3 py-2 text-right">
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              className="border-app-border text-black hover:bg-gray-100"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                handlePrintReceipt(sale.id);
+                              }}
+                            >
+                              Comprovante
+                            </Button>
+                          </td>
+                        </tr>
+                        {selectedSale?.id === sale.id && (
+                          <tr className="border-b border-app-border bg-gray-50">
+                            <td className="px-3 py-4" colSpan={6}>
+                              <div className="space-y-3">
+                                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                  <div className="text-sm text-gray-700">
+                                    <p>
+                                      <span className="font-normal">Data/Hora: </span>
+                                      {new Date(selectedSale.receivedAt).toLocaleString("pt-BR")}
+                                    </p>
+                                    <p>
+                                      <span className="font-normal">Mesa / Comanda: </span>
+                                      {selectedSale.table
+                                        ? `Mesa ${selectedSale.table}${
+                                            selectedSale.comanda
+                                              ? ` - ${String(selectedSale.comanda).trim()}`
+                                              : ""
+                                          }`
+                                        : selectedSale.comanda
+                                        ? String(selectedSale.comanda).trim()
+                                        : "-"}
+                                    </p>
+                                    <p>
+                                      <span className="font-normal">Pagamento: </span>
+                                      {selectedSale.paymentMethod}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                <div className="border border-app-border rounded-lg overflow-hidden bg-white">
+                                  <table className="min-w-full text-sm">
+                                    <thead className="bg-gray-50">
+                                      <tr className="border-b border-app-border">
+                                        <th className="px-3 py-2 text-left font-normal text-gray-600">
+                                          Produto
+                                        </th>
+                                        <th className="px-3 py-2 text-center font-normal text-gray-600">
+                                          Qtd
+                                        </th>
+                                        <th className="px-3 py-2 text-right font-normal text-gray-600">
+                                          Unitário
+                                        </th>
+                                        <th className="px-3 py-2 text-right font-normal text-gray-600">
+                                          Subtotal
+                                        </th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {selectedSale.items.map((item) => (
+                                        <tr key={item.id} className="border-b border-app-border">
+                                          <td className="px-3 py-2">{item.productName}</td>
+                                          <td className="px-3 py-2 text-center">{item.quantity}</td>
+                                          <td className="px-3 py-2 text-right">
+                                            {formatPrice(item.unitPriceCents)}
+                                          </td>
+                                          <td className="px-3 py-2 text-right">
+                                            {formatPrice(item.unitPriceCents * item.quantity)}
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+
+                                <div className="flex justify-end">
+                                  <span className="text-base sm:text-lg font-normal">
+                                    Total:&nbsp;
+                                    <span className="text-brand-primary">
+                                      {formatPrice(selectedSale.totalCents)}
+                                    </span>
+                                  </span>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </>
                     ))}
                   </tbody>
                 </table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="bg-app-card border-app-border tech-shadow">
-          <CardHeader>
-            <CardTitle className="text-base sm:text-lg font-normal text-gray-700">
-              Detalhe da venda selecionada
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {!selectedSale ? (
-              <p className="text-sm text-gray-600">
-                Selecione uma venda na lista acima para ver os itens vendidos.
-              </p>
-            ) : (
-              <div className="space-y-3">
-                <div className="text-sm text-gray-700">
-                  <p>
-                    <span className="font-normal">Data/Hora: </span>
-                    {new Date(selectedSale.receivedAt).toLocaleString("pt-BR")}
-                  </p>
-                  <p>
-                    <span className="font-normal">Mesa / Comanda: </span>
-                    {selectedSale.table
-                      ? `Mesa ${selectedSale.table}${
-                          selectedSale.comanda
-                            ? ` - ${String(selectedSale.comanda).trim()}`
-                            : ""
-                        }`
-                      : selectedSale.comanda
-                      ? String(selectedSale.comanda).trim()
-                      : "-"}
-                  </p>
-                  <p>
-                    <span className="font-normal">Pagamento: </span>
-                    {selectedSale.paymentMethod}
-                  </p>
-                </div>
-
-                <div className="border border-app-border rounded-lg overflow-hidden">
-                  <table className="min-w-full text-sm">
-                    <thead className="bg-gray-50">
-                      <tr className="border-b border-app-border">
-                        <th className="px-3 py-2 text-left font-normal text-gray-600">
-                          Produto
-                        </th>
-                        <th className="px-3 py-2 text-center font-normal text-gray-600">
-                          Qtd
-                        </th>
-                        <th className="px-3 py-2 text-right font-normal text-gray-600">
-                          Unitário
-                        </th>
-                        <th className="px-3 py-2 text-right font-normal text-gray-600">
-                          Subtotal
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {selectedSale.items.map((item) => (
-                        <tr key={item.id} className="border-b border-app-border">
-                          <td className="px-3 py-2">{item.productName}</td>
-                          <td className="px-3 py-2 text-center">{item.quantity}</td>
-                          <td className="px-3 py-2 text-right">
-                            {formatPrice(item.unitPriceCents)}
-                          </td>
-                          <td className="px-3 py-2 text-right">
-                            {formatPrice(item.unitPriceCents * item.quantity)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                <div className="flex justify-end">
-                  <span className="text-base sm:text-lg font-normal">
-                    Total:&nbsp;
-                    <span className="text-brand-primary">
-                      {formatPrice(selectedSale.totalCents)}
-                    </span>
-                  </span>
-                </div>
               </div>
             )}
           </CardContent>

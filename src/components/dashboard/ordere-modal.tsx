@@ -1033,7 +1033,7 @@ export function OrderModal({
                                         type="button"
                                         size="icon"
                                         variant="outline"
-                                        className="h-7 w-7 border-app-border text-white"
+                                        className="h-7 w-7 border-app-border bg-white text-black hover:bg-white/90"
                                         onClick={() =>
                                           handleUpdateGroupedProductQuantity(
                                             groupedItem.product.id,
@@ -1049,7 +1049,7 @@ export function OrderModal({
                                         type="button"
                                         size="icon"
                                         variant="outline"
-                                        className="h-7 w-7 border-app-border text-white"
+                                        className="h-7 w-7 border-app-border bg-white text-black hover:bg-white/90"
                                         onClick={() =>
                                           handleUpdateGroupedProductQuantity(
                                             groupedItem.product.id,
@@ -1800,7 +1800,7 @@ export function OrderModal({
                                       type="button"
                                       size="icon"
                                       variant="outline"
-                                      className="h-7 w-7 border-app-border text-gray-700"
+                                      className="h-7 w-7 border-app-border bg-white text-black hover:bg-gray-50"
                                       onClick={() =>
                                         handleUpdateGroupedProductQuantity(
                                           groupedItem.product.id,
@@ -1816,7 +1816,7 @@ export function OrderModal({
                                       type="button"
                                       size="icon"
                                       variant="outline"
-                                      className="h-7 w-7 border-app-border text-gray-700"
+                                      className="h-7 w-7 border-app-border bg-white text-black hover:bg-gray-50"
                                       onClick={() =>
                                         handleUpdateGroupedProductQuantity(
                                           groupedItem.product.id,
